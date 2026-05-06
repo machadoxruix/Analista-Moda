@@ -183,7 +183,7 @@ function mostrarOutfit($outfit) {
     foreach ($outfit as $prenda) {
         $foto   = htmlspecialchars($prenda['foto']   ?? '');
         $nombre = htmlspecialchars($prenda['nombre'] ?? 'Prenda');
-        $ruta   = "fotos/muestras/{$foto}";
+        $ruta   = $foto;
 
         echo "<div class='ficha2' style='display:flex;flex-direction:column;align-items:center;background:#fafafa;border:1px solid #eee;border-radius:14px;padding:16px;width:220px;'>";
         echo "  <div style='width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,0.08);'>";
