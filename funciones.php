@@ -106,6 +106,24 @@ function supabaseInsert($table, $data) {
 }
 
 // ============================================================
+//  VERIFICAR LOGIN CONTRA SUPABASE
+// ============================================================
+function verificarLogin($usuario, $contrasena) {
+    $query = '?usuario=eq.' . urlencode($usuario)
+           . '&contrasena=eq.' . urlencode($contrasena)
+           . '&select=usuario'
+           . '&limit=1';
+
+    $resultado = supabaseRequest('cuentas', $query);
+
+    if ($resultado && count($resultado) > 0) {
+        return $resultado[0];
+    }
+
+    return null;
+}
+
+// ============================================================
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
