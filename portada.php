@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Pilchas AI — Iniciar Sesión</title>
+    <title>Outfit AI — Iniciar Sesión</title>
     <link href="estilos.css" rel="stylesheet" type="text/css">
     <style>
         /* ── Estilos exclusivos del login ── */
