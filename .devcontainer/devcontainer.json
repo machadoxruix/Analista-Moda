@@ -1,0 +1,4 @@
+cd /workspaces/Analista-Moda
+git add .
+git commit -m "auto-start apache"
+git push
