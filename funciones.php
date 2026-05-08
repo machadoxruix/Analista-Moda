@@ -142,7 +142,26 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    var_dump($_POST);
+    $genero = sanitizar($_POST['genero']  ?? '');
+$estilo = sanitizar($_POST['gustos']  ?? '');
+$tamano = sanitizar($_POST['tamaño']  ?? '');
+$color_remera   = $_POST['color_remera']   ?? '#ffffff';
+$color_pantalon = $_POST['color_pantalon'] ?? '#333333';
+
+echo "Genero: $genero | Estilo: $estilo | Tamano: $tamano<br>";
+
+foreach (['remera', 'pantalon', 'zapatos'] as $tipo) {
+    $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
+           . '&estilo=eq.'  . urlencode($estilo)
+           . '&tamano=eq.'  . urlencode($tamano)
+           . '&tipo=eq.'    . urlencode($tipo)
+           . '&select=id,nombre,tipo,foto,hex'
+           . '&limit=100';
+
+    $prendas = supabaseRequest(TABLE_PRENDAS, $query);
+    echo "Tipo: $tipo | Resultados: " . count($prendas ?? []) . " | Query: $query<br>";
+}
+die();
     unset($_SESSION['outfit'], $_SESSION['outfit_clave']);
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
