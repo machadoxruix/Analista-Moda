@@ -142,26 +142,6 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    $genero = sanitizar($_POST['genero']  ?? '');
-$estilo = sanitizar($_POST['gustos']  ?? '');
-$tamano = sanitizar($_POST['tamaño']  ?? '');
-$color_remera   = $_POST['color_remera']   ?? '#ffffff';
-$color_pantalon = $_POST['color_pantalon'] ?? '#333333';
-
-echo "Genero: $genero | Estilo: $estilo | Tamano: $tamano<br>";
-
-foreach (['remera', 'pantalon', 'zapatos'] as $tipo) {
-    $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
-           . '&estilo=eq.'  . urlencode($estilo)
-           . '&tamano=eq.'  . urlencode($tamano)
-           . '&tipo=eq.'    . urlencode($tipo)
-           . '&select=id,nombre,tipo,foto,hex'
-           . '&limit=100';
-
-    $prendas = supabaseRequest(TABLE_PRENDAS, $query);
-    echo "Tipo: $tipo | Resultados: " . count($prendas ?? []) . " | Query: $query<br>";
-}
-die();
     unset($_SESSION['outfit'], $_SESSION['outfit_clave']);
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
@@ -217,6 +197,14 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_
                . '&limit=100';
 
         $prendas = supabaseRequest(TABLE_PRENDAS, $query);
+
+        echo "Tipo: $tipo | Prendas con foto: ";
+$conFoto = array_values(array_filter($prendas, fn($p) => !empty($p['foto'])));
+echo count($conFoto) . "<br>";
+
+if (count($conFoto) > 0) {
+    echo "Hex primera prenda: " . ($conFoto[0]['hex'] ?? 'NULL') . "<br>";
+}
 
         if (!$prendas || count($prendas) === 0) continue;
 
