@@ -142,6 +142,10 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
+    if (isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
+    mostrarOutfit($_SESSION['outfit']);
+    return;
+}
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
     $tamano = sanitizar($_POST['tamaño']  ?? '');
@@ -162,6 +166,7 @@ function generarOutfit() {
     } else {
         mostrarError("No encontramos prendas para esa combinación.");
     }
+    $_SESSION['outfit'] = $outfit;
 }
 
 // ============================================================

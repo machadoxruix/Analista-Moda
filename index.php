@@ -1,7 +1,7 @@
 <?php
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
-    unset($_SESSION['outfit'], $_SESSION['outfit_clave']);
+    unset($_SESSION['outfit']);
 }
 
 // Si viene de POST (nuevo test), guardar en sesión
