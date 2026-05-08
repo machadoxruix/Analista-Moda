@@ -209,15 +209,16 @@ if (count($conFoto) > 0) {
         if (!$prendas || count($prendas) === 0) continue;
 
         // Filtrar las que tienen foto
-        $prendas = array_values(array_filter($prendas, fn($p) => !empty($p['foto'])));
+        $prendas = array_values(array_filter($prendas, function($p) { return !empty($p['foto']); }));
         if (count($prendas) === 0) continue;
 
         if ($color_elegido && !empty($prendas[0]['hex'])) {
             // Ordenar por distancia de color y tomar la más cercana
-            usort($prendas, fn($a, $b) =>
-                distanciaColor($color_elegido, $a['hex'] ?? '#000000') <=>
-                distanciaColor($color_elegido, $b['hex'] ?? '#000000')
-            );
+            usort($prendas, function($a, $b) use ($color_elegido) {
+    $da = distanciaColor($color_elegido, $a['hex'] ?? '#000000');
+    $db = distanciaColor($color_elegido, $b['hex'] ?? '#000000');
+    return $da <=> $db;
+});
             $outfit[] = $prendas[0];
         } else {
             // Zapatos: aleatorio
