@@ -155,7 +155,9 @@ function generarOutfit() {
         return;
     }
 
-    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano);
+    $color_remera   = $_POST['color_remera']   ?? '#ffffff';
+$color_pantalon = $_POST['color_pantalon'] ?? '#333333';
+$outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon);
 
     if ($outfit && count($outfit) > 0) {
         mostrarOutfit($outfit);
@@ -172,31 +174,55 @@ function generarOutfit() {
 // ============================================================
 //  ARMAR UN OUTFIT COMPLETO (una prenda por tipo)
 // ============================================================
-function obtenerOutfitCompleto($genero, $estilo, $tamano) {
+function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333') {
     $outfit = [];
-    $tipos  = ['remera', 'pantalon', 'zapatos'];
 
-    foreach ($tipos as $tipo) {
+    $colores = [
+        'remera'   => $color_remera,
+        'pantalon' => $color_pantalon,
+        'zapatos'  => null,
+    ];
+
+    foreach ($colores as $tipo => $color_elegido) {
         $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
                . '&estilo=eq.'  . urlencode($estilo)
                . '&tamano=eq.'  . urlencode($tamano)
                . '&tipo=eq.'    . urlencode($tipo)
-               . '&select=id,nombre,tipo,foto'
+               . '&select=id,nombre,tipo,foto,hex'
                . '&limit=100';
 
         $prendas = supabaseRequest(TABLE_PRENDAS, $query);
 
-        if ($prendas && count($prendas) > 0) {
-            $conFoto = array_values(array_filter($prendas, function($p) { return !empty($p['foto']); }));
-            if (count($conFoto) > 0) {
-                $outfit[] = $conFoto[array_rand($conFoto)];
+        if (!$prendas || count($prendas) === 0) continue;
+
+        $prendas = array_values(array_filter($prendas, function($p) {
+            return !empty($p['foto']);
+        }));
+
+        if (count($prendas) === 0) continue;
+
+        if ($color_elegido !== null && !empty($prendas[0]['hex'])) {
+            // Buscar la prenda con color más cercano al elegido
+            $mejor     = null;
+            $min_dist  = PHP_INT_MAX;
+
+            foreach ($prendas as $prenda) {
+                $dist = distanciaColor($color_elegido, $prenda['hex'] ?? '#000000');
+                if ($dist < $min_dist) {
+                    $min_dist = $dist;
+                    $mejor    = $prenda;
+                }
             }
+
+            $outfit[] = $mejor;
+        } else {
+            // Zapatos: aleatorio
+            $outfit[] = $prendas[array_rand($prendas)];
         }
     }
 
     return $outfit;
 }
-
 // ============================================================
 //  MOSTRAR EL OUTFIT EN PANTALLA
 // ============================================================
@@ -286,4 +312,19 @@ function debugLog($mensaje) {
                       font-size:0.8rem;text-align:left;color:#721c24;'>";
     echo "  🔍 DEBUG: " . htmlspecialchars($mensaje);
     echo "</div>";
+}
+
+function distanciaColor($hex1, $hex2) {
+    $hex1 = ltrim($hex1, '#');
+    $hex2 = ltrim($hex2, '#');
+
+    $r1 = hexdec(substr($hex1, 0, 2));
+    $g1 = hexdec(substr($hex1, 2, 2));
+    $b1 = hexdec(substr($hex1, 4, 2));
+
+    $r2 = hexdec(substr($hex2, 0, 2));
+    $g2 = hexdec(substr($hex2, 2, 2));
+    $b2 = hexdec(substr($hex2, 4, 2));
+
+    return sqrt(pow($r1-$r2, 2) + pow($g1-$g2, 2) + pow($b1-$b2, 2));
 }
