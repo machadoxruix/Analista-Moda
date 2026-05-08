@@ -142,6 +142,7 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
+    var_dump($_POST);
     unset($_SESSION['outfit'], $_SESSION['outfit_clave']);
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
