@@ -8,7 +8,7 @@ define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
 // Modo debug: en TRUE muestra errores en pantalla. Pasar a FALSE en producción.
-define('DEBUG_MODE', false);
+define('DEBUG_MODE', true);
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
