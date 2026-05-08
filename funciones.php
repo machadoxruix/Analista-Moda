@@ -142,7 +142,6 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    unset($_SESSION['outfit'], $_SESSION['outfit_clave']);
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
     $tamano = sanitizar($_POST['tamaño']  ?? '');
@@ -152,25 +151,14 @@ function generarOutfit() {
         return;
     }
 
-    // Si ya hay un outfit guardado en sesión para esta combinación, mostrarlo
-    $clave = md5($genero . $estilo . $tamano);
-    if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave) {
-        mostrarOutfit($_SESSION['outfit']);
-        guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo);
-        return;
-    }
-
-    $color_remera   = $_POST['color_remera']   ?? '#ffffff';
-    $color_pantalon = $_POST['color_pantalon'] ?? '#333333';
-
-    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon);
+    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano);
 
     if ($outfit && count($outfit) > 0) {
-        // Guardar en sesión para evitar cambios al recargar
-        $_SESSION['outfit']       = $outfit;
-        $_SESSION['outfit_clave'] = $clave;
         mostrarOutfit($outfit);
-        guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo);
+        $paleta = sanitizar($_POST['paleta'] ?? '');
+        $pelo   = sanitizar($_POST['pelo']   ?? '');
+        $altura = sanitizar($_POST['altura']  ?? '');
+        guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo, $paleta, $pelo, $altura);
     } else {
         mostrarError("No encontramos prendas para esa combinación.");
     }
@@ -179,50 +167,25 @@ function generarOutfit() {
 // ============================================================
 //  ARMAR UN OUTFIT COMPLETO (una prenda por tipo)
 // ============================================================
-function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon) {
+function obtenerOutfitCompleto($genero, $estilo, $tamano) {
     $outfit = [];
+    $tipos  = ['remera', 'pantalon', 'zapatos'];
 
-    $tipos_color = [
-        'remera'   => $color_remera,
-        'pantalon' => $color_pantalon,
-        'zapatos'  => null,   // sin filtro de color
-    ];
-
-    foreach ($tipos_color as $tipo => $color_elegido) {
+    foreach ($tipos as $tipo) {
         $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
                . '&estilo=eq.'  . urlencode($estilo)
                . '&tamano=eq.'  . urlencode($tamano)
                . '&tipo=eq.'    . urlencode($tipo)
-               . '&select=id,nombre,tipo,foto,hex'
+               . '&select=id,nombre,tipo,foto'
                . '&limit=100';
 
         $prendas = supabaseRequest(TABLE_PRENDAS, $query);
 
-        echo "Tipo: $tipo | Prendas con foto: ";
-$conFoto = array_values(array_filter($prendas, fn($p) => !empty($p['foto'])));
-echo count($conFoto) . "<br>";
-
-if (count($conFoto) > 0) {
-    echo "Hex primera prenda: " . ($conFoto[0]['hex'] ?? 'NULL') . "<br>";
-}
-
-        if (!$prendas || count($prendas) === 0) continue;
-
-        // Filtrar las que tienen foto
-        $prendas = array_values(array_filter($prendas, function($p) { return !empty($p['foto']); }));
-        if (count($prendas) === 0) continue;
-
-        if ($color_elegido && !empty($prendas[0]['hex'])) {
-            // Ordenar por distancia de color y tomar la más cercana
-            usort($prendas, function($a, $b) use ($color_elegido) {
-    $da = distanciaColor($color_elegido, $a['hex'] ?? '#000000');
-    $db = distanciaColor($color_elegido, $b['hex'] ?? '#000000');
-    return $da <=> $db;
-});
-            $outfit[] = $prendas[0];
-        } else {
-            // Zapatos: aleatorio
-            $outfit[] = $prendas[array_rand($prendas)];
+        if ($prendas && count($prendas) > 0) {
+            $conFoto = array_values(array_filter($prendas, function($p) { return !empty($p['foto']); }));
+            if (count($conFoto) > 0) {
+                $outfit[] = $conFoto[array_rand($conFoto)];
+            }
         }
     }
 
