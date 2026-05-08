@@ -130,6 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="submit" value="INICIAR SESIÓN" class="boton-grande" style="width:100%;margin-top:6px;">
             </form>
 
+            <p style="margin-top:20px;">
+    ¿No tenés cuenta? <a href="portada0.php">Crear cuenta</a>
+            </p>
+
+<?php if (isset($_GET['cuenta']) && $_GET['cuenta'] === 'creada'): ?>
+    <div style="background:#f0fff4;border:1px solid #b7ebc0;color:#276237;
+                border-radius:8px;padding:10px 14px;font-size:0.9rem;margin-top:16px;">
+        ✅ ¡Cuenta creada! Ya podés iniciar sesión.
+    </div>
+<?php endif; ?>
+
         </div>
     </div>
 </body>

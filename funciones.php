@@ -123,68 +123,96 @@ function verificarLogin($usuario, $contrasena) {
     return null;
 }
 
+function crearCuenta($usuario, $contrasena) {
+    // Verificar si el usuario ya existe
+    $existe = supabaseRequest('cuentas', '?usuario=eq.' . urlencode($usuario) . '&select=id&limit=1');
+    if ($existe && count($existe) > 0) {
+        return 'existe';
+    }
+
+    $ok = supabaseInsert('cuentas', [
+        'usuario'    => $usuario,
+        'contrasena' => $contrasena,
+    ]);
+
+    return $ok ? 'ok' : 'error';
+}
+
 // ============================================================
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    // Leer y sanitizar datos del formulario
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
-    $tamano = sanitizar($_POST['tamaño']  ?? '');   // sin tilde internamente
+    $tamano = sanitizar($_POST['tamaño']  ?? '');
 
-    // Validar que los tres campos lleguen
     if (!$genero || !$estilo || !$tamano) {
-        mostrarError("Faltan datos del formulario. Por favor volvé e intentá de nuevo.");
-        debugLog("POST recibido: " . print_r($_POST, true));
+        mostrarError("Faltan datos del formulario.");
         return;
     }
 
-    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano);
+    // Si ya hay un outfit guardado en sesión para esta combinación, mostrarlo
+    $clave = md5($genero . $estilo . $tamano);
+    if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave) {
+        mostrarOutfit($_SESSION['outfit']);
+        guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo);
+        return;
+    }
+
+    $color_remera   = $_POST['color_remera']   ?? '#ffffff';
+    $color_pantalon = $_POST['color_pantalon'] ?? '#333333';
+
+    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon);
 
     if ($outfit && count($outfit) > 0) {
+        // Guardar en sesión para evitar cambios al recargar
+        $_SESSION['outfit']       = $outfit;
+        $_SESSION['outfit_clave'] = $clave;
         mostrarOutfit($outfit);
-        $paleta = sanitizar($_POST['paleta'] ?? '');
-        $pelo   = sanitizar($_POST['pelo']   ?? '');
-        $altura = sanitizar($_POST['altura']  ?? '');
-        guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo, $paleta, $pelo, $altura);
+        guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo);
     } else {
-        mostrarError("No encontramos prendas para esa combinación. Probá con otra selección.");
+        mostrarError("No encontramos prendas para esa combinación.");
     }
 }
 
 // ============================================================
 //  ARMAR UN OUTFIT COMPLETO (una prenda por tipo)
 // ============================================================
-function obtenerOutfitCompleto($genero, $estilo, $tamano) {
+function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon) {
     $outfit = [];
-    $tipos  = ['remera', 'pantalon', 'zapatos'];
 
-    foreach ($tipos as $tipo) {
-        /*
-         * Sintaxis correcta de PostgREST para filtros:
-         *   in.()   → sin comillas para strings simples
-         *   eq.     → igualdad exacta
-         * Los valores se pasan URL-encoded para evitar problemas con
-         * caracteres especiales (tildes, espacios, etc.)
-         */
+    $tipos_color = [
+        'remera'   => $color_remera,
+        'pantalon' => $color_pantalon,
+        'zapatos'  => null,   // sin filtro de color
+    ];
+
+    foreach ($tipos_color as $tipo => $color_elegido) {
         $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
                . '&estilo=eq.'  . urlencode($estilo)
-               . '&tamano=eq.'  . urlencode($tamano)   // ← columna sin tilde (renombrá en Supabase)
+               . '&tamano=eq.'  . urlencode($tamano)
                . '&tipo=eq.'    . urlencode($tipo)
-               . '&select=id,nombre,tipo,foto'
+               . '&select=id,nombre,tipo,foto,hex'
                . '&limit=100';
 
         $prendas = supabaseRequest(TABLE_PRENDAS, $query);
 
-        debugLog("Tipo: $tipo | Query: $query | Resultados: " . count($prendas ?? []));
+        if (!$prendas || count($prendas) === 0) continue;
 
-        if ($prendas && count($prendas) > 0) {
-            // Filtrar las que tienen foto
-            $conFoto = array_filter($prendas, fn($p) => !empty($p['foto']));
+        // Filtrar las que tienen foto
+        $prendas = array_values(array_filter($prendas, fn($p) => !empty($p['foto'])));
+        if (count($prendas) === 0) continue;
 
-            if (count($conFoto) > 0) {
-                $outfit[] = $conFoto[array_rand($conFoto)];
-            }
+        if ($color_elegido && !empty($prendas[0]['hex'])) {
+            // Ordenar por distancia de color y tomar la más cercana
+            usort($prendas, fn($a, $b) =>
+                distanciaColor($color_elegido, $a['hex'] ?? '#000000') <=>
+                distanciaColor($color_elegido, $b['hex'] ?? '#000000')
+            );
+            $outfit[] = $prendas[0];
+        } else {
+            // Zapatos: aleatorio
+            $outfit[] = $prendas[array_rand($prendas)];
         }
     }
 
@@ -221,7 +249,7 @@ function mostrarOutfit($outfit) {
     echo "</form>";
 
     echo "<p style='text-align:center;margin-top:20px;'>";
-    echo "  <a href='portada.php'>Click aquí para nuevo usuario</a>";
+    echo "<a href='portada.php'>Cerrar sesión</a>";
     echo "</p>";
 }
 
