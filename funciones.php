@@ -222,7 +222,7 @@ function mostrarOutfit($outfit) {
     echo "</form>";
 
     echo "<p style='text-align:center;margin-top:20px;'>";
-    echo "<a href='portada.php'>Cerrar sesión</a>";
+    echo "<a href='logout.php'>Cerrar sesión</a>";
     echo "</p>";
 }
 
