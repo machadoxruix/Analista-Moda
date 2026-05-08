@@ -253,7 +253,7 @@ function guardarPreferenciasUsuario($nombre, $genero, $estilo, $paleta = '', $pe
         'genero'          => $genero,
         'estilo_favorito' => $estilo,
         'paleta_piel'     => $paleta,
-        'pelo'            => $pelo,
+        'pelo' => trim($_POST['pelo'] ?? ''),
         'altura'          => $altura,
     ];
 
