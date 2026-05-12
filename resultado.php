@@ -15,6 +15,7 @@ if (isset($_POST['nombre'])) {
 <head>
     <meta charset="utf-8">
     <title>Tu Outfit Personalizado</title>
+    <link rel="icon" type="image/x-icon" href="./favicon.ico">
     <link href="estilos.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css">
 </head>
 <body>
