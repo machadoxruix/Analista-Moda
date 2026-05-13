@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <title>Outfit AI — Crear Cuenta</title>
-    <link rel="icon" type="image/png" href="/fotos/favicon.png">
+    <link rel="icon" type="image/png" href="/favicon.png">
     <link href="estilos.css" rel="stylesheet" type="text/css">
     <style>
         .login-box { max-width: 400px; margin: 0 auto; }
