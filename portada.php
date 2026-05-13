@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="utf-8">
     <title>Outfit AI — Iniciar Sesión</title>
-    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" href="/favicon.ico?v=2">
     <link href="estilos.css" rel="stylesheet" type="text/css">
     <style>
         /* ── Estilos exclusivos del login ── */
