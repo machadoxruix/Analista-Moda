@@ -17,7 +17,7 @@ $nombre = $_SESSION['nombre_usuario'] ?? "Invitado";
 <head>
     <meta charset="utf-8">
     <title>Outfit AI - Test de Estilo</title>
-    <link rel="icon" href="/favicon.ico?v=2">
+    <link rel="icon" href="fotos/favicon.ico">
     <!-- Forzar recarga del CSS sin cacheo -->
     <link href="estilos.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css">
 </head>
