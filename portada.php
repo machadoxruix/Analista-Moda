@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="contenedor">
         <div class="login-box">
 
-            <div class="logo">OUTFIT AI</div>
+            <div class="logo">PILCHA AI</div>
             <h1>Bienvenido</h1>
             <p>Iniciá sesión para armar tu outfit personalizado.</p>
 
