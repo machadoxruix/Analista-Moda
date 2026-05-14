@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Outfit AI — Iniciar Sesión</title>
+    <title>PILCHA IA — Iniciar Sesión</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link href="estilos.css" rel="stylesheet" type="text/css">
     <style>
