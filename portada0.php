@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="contenedor">
         <div class="login-box">
-            <div class="logo">OUTFIT AI</div>
+            <div class="logo">PILCHA IA</div>
             <h1>Crear cuenta</h1>
             <p>Elegí un usuario y contraseña para ingresar.</p>
 

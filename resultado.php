@@ -21,7 +21,7 @@ if (isset($_POST['nombre'])) {
 <body>
     <div class="contenedor">
         <header>
-            <div class="logo" style="color: #800020; font-weight: 800; font-size: 1.5rem; margin-bottom: 10px;">OUTFIT AI</div>
+            <div class="logo" style="color: #800020; font-weight: 800; font-size: 1.5rem; margin-bottom: 10px;">PILCHA IA</div>
             <h1>Tu Propuesta de Estilo</h1>
             <p>Hemos seleccionado estas prendas para tu outfit.</p>
         </header>

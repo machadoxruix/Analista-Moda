@@ -102,8 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="contenedor">
         <div class="login-box">
 
-            <div class="logo">PILCHAS AI</div>
-            <h1>Bienvenidos</h1>
+            <div class="logo">PILCHA IA</div>
+            <h1>Bienvenido</h1>
             <p>Iniciá sesión para armar tu outfit personalizado.</p>
 
             <?php if ($error): ?>
