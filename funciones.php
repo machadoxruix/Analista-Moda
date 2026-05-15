@@ -184,27 +184,43 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
     ];
 
     foreach ($colores as $tipo => $color_elegido) {
-        $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
-               . '&estilo=eq.'  . urlencode($estilo)
-               . '&tamano=eq.'  . urlencode($tamano)
-               . '&tipo=eq.'    . urlencode($tipo)
-               . '&select=id,nombre,tipo,foto,hex'
-               . '&limit=100';
 
-        $prendas = supabaseRequest(TABLE_PRENDAS, $query);
+        // Intentos en orden: exacto → sin tamaño → sin estilo ni tamaño
+        $intentos = [
+            '?genero=in.(' . urlencode($genero) . ',unisex)'
+                . '&estilo=eq.' . urlencode($estilo)
+                . '&tamano=eq.' . urlencode($tamano)
+                . '&tipo=eq.'   . urlencode($tipo)
+                . '&select=id,nombre,tipo,foto,hex&limit=100',
 
-        if (!$prendas || count($prendas) === 0) continue;
+            '?genero=in.(' . urlencode($genero) . ',unisex)'
+                . '&estilo=eq.' . urlencode($estilo)
+                . '&tipo=eq.'   . urlencode($tipo)
+                . '&select=id,nombre,tipo,foto,hex&limit=100',
 
-        $prendas = array_values(array_filter($prendas, function($p) {
-            return !empty($p['foto']);
-        }));
+            '?genero=in.(' . urlencode($genero) . ',unisex)'
+                . '&tipo=eq.'   . urlencode($tipo)
+                . '&select=id,nombre,tipo,foto,hex&limit=100',
+        ];
+
+        $prendas = [];
+        foreach ($intentos as $query) {
+            $resultado = supabaseRequest(TABLE_PRENDAS, $query);
+            $conFoto   = array_values(array_filter($resultado ?? [], function($p) {
+                return !empty($p['foto']);
+            }));
+
+            if (count($conFoto) > 0) {
+                $prendas = $conFoto;
+                break; // encontró, no sigue relajando
+            }
+        }
 
         if (count($prendas) === 0) continue;
 
         if ($color_elegido !== null && !empty($prendas[0]['hex'])) {
-            // Buscar la prenda con color más cercano al elegido
-            $mejor     = null;
-            $min_dist  = PHP_INT_MAX;
+            $mejor    = null;
+            $min_dist = PHP_INT_MAX;
 
             foreach ($prendas as $prenda) {
                 $dist = distanciaColor($color_elegido, $prenda['hex'] ?? '#000000');
@@ -216,7 +232,6 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
             $outfit[] = $mejor;
         } else {
-            // Zapatos: aleatorio
             $outfit[] = $prendas[array_rand($prendas)];
         }
     }
