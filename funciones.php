@@ -142,7 +142,9 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    if (isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
+ $clave_actual = md5($genero . $estilo . $tamano . $talle . $color_remera . $color_pantalon);
+
+if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave_actual) {
     mostrarOutfit($_SESSION['outfit']);
     return;
 }
@@ -170,6 +172,7 @@ $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color
         mostrarError("No encontramos prendas para esa combinación.");
     }
     $_SESSION['outfit'] = $outfit;
+    $_SESSION['outfit_clave'] = $clave_actual;
 }
 
 // ============================================================
