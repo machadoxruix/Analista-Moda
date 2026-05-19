@@ -157,7 +157,8 @@ function generarOutfit() {
 
     $color_remera   = $_POST['color_remera']   ?? '#ffffff';
 $color_pantalon = $_POST['color_pantalon'] ?? '#333333';
-$outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon);
+$talle = sanitizar($_POST['talle'] ?? '');
+$outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon, $talle);
 
     if ($outfit && count($outfit) > 0) {
         mostrarOutfit($outfit);
@@ -174,7 +175,7 @@ $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color
 // ============================================================
 //  ARMAR UN OUTFIT COMPLETO (una prenda por tipo)
 // ============================================================
-function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333') {
+function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333', $talle = '') {
     $outfit = [];
 
     $colores = [
@@ -186,22 +187,32 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
     foreach ($colores as $tipo => $color_elegido) {
 
         // Intentos en orden: exacto → sin tamaño → sin estilo ni tamaño
-        $intentos = [
-            '?genero=in.(' . urlencode($genero) . ',unisex)'
-                . '&estilo=eq.' . urlencode($estilo)
-                . '&tamano=eq.' . urlencode($tamano)
-                . '&tipo=eq.'   . urlencode($tipo)
-                . '&select=id,nombre,tipo,foto,hex&limit=100',
+        $intentos = [];
 
-            '?genero=in.(' . urlencode($genero) . ',unisex)'
-                . '&estilo=eq.' . urlencode($estilo)
-                . '&tipo=eq.'   . urlencode($tipo)
-                . '&select=id,nombre,tipo,foto,hex&limit=100',
+// Solo agregar intento con talle si el usuario lo seleccionó
+if ($talle !== '') {
+    $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+        . '&estilo=eq.' . urlencode($estilo)
+        . '&tamano=eq.' . urlencode($tamano)
+        . '&talle=eq.'  . urlencode($talle)
+        . '&tipo=eq.'   . urlencode($tipo)
+        . '&select=id,nombre,tipo,foto,hex&limit=100';
+}
 
-            '?genero=in.(' . urlencode($genero) . ',unisex)'
-                . '&tipo=eq.'   . urlencode($tipo)
-                . '&select=id,nombre,tipo,foto,hex&limit=100',
-        ];
+$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+    . '&estilo=eq.' . urlencode($estilo)
+    . '&tamano=eq.' . urlencode($tamano)
+    . '&tipo=eq.'   . urlencode($tipo)
+    . '&select=id,nombre,tipo,foto,hex&limit=100';
+
+$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+    . '&estilo=eq.' . urlencode($estilo)
+    . '&tipo=eq.'   . urlencode($tipo)
+    . '&select=id,nombre,tipo,foto,hex&limit=100';
+
+$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+    . '&tipo=eq.'   . urlencode($tipo)
+    . '&select=id,nombre,tipo,foto,hex&limit=100';
 
         $prendas = [];
         foreach ($intentos as $query) {

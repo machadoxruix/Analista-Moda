@@ -153,11 +153,21 @@ $nombre = $_SESSION['nombre_usuario'] ?? "Invitado";
         </select>
 
         <select name="tamaño" required>
-            <option value="" selected disabled>Elegí el talle...</option>
+            <option value="" selected disabled>Elegí el corte...</option>
             <option value="holgada">Holgada (Oversize)</option> 
             <option value="ajustada">Ajustada (Slim)</option> 
             <option value="recto">Recto (Straight)</option> 
         </select>
+
+        <select name="talle">
+             <option value="" selected>Talle (opcional)</option>
+             <option value="XS">XS</option>
+             <option value="S">S</option>
+             <option value="M">M</option>
+             <option value="L">L</option>
+             <option value="XL">XL</option>
+             <option value="XXL">XXL</option>
+       </select>
 
         <h3>3. Colores de la Indumentaria</h3>
         <div class="contenedor-colores">
