@@ -181,11 +181,36 @@ $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color
 function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333', $talle = '') {
     $outfit = [];
 
+    // Si es femenino y no es deportivo, verificar si hay vestido disponible
+$tiene_vestido = false;
+if ($genero === 'femenino' && $estilo !== 'deportivo') {
+    $query_vestido = '?genero=in.(femenino,unisex)'
+        . '&estilo=eq.'  . urlencode($estilo)
+        . '&tamano=eq.'  . urlencode($tamano)
+        . '&tipo=eq.vestido'
+        . '&select=id,nombre,tipo,foto,hex&limit=100';
+
+    $vestidos = supabaseRequest(TABLE_PRENDAS, $query_vestido);
+    $vestidos = array_values(array_filter($vestidos ?? [], function($p) {
+        return !empty($p['foto']);
+    }));
+
+    $tiene_vestido = count($vestidos) > 0;
+}
+
+// Definir tipos según si hay vestido disponible
+if ($tiene_vestido) {
+    $colores = [
+        'vestido'  => $color_remera,  // usa el color superior para el vestido
+        'zapatos'  => null,
+    ];
+} else {
     $colores = [
         'remera'   => $color_remera,
         'pantalon' => $color_pantalon,
         'zapatos'  => null,
     ];
+}
 
     foreach ($colores as $tipo => $color_elegido) {
 
