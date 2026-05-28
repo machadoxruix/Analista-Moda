@@ -195,7 +195,8 @@ if ($genero === 'femenino' && $estilo !== 'deportivo') {
         return !empty($p['foto']);
     }));
 
-    $tiene_vestido = count($vestidos) > 0;
+    // Solo usar vestido el 50% de las veces que haya uno disponible
+    $tiene_vestido = count($vestidos) > 0 && rand(0, 1) === 1;
 }
 
 // Definir tipos según si hay vestido disponible
