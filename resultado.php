@@ -5,7 +5,6 @@ if (session_status() == PHP_SESSION_NONE) {
 
 include("funciones.php");
 
-// Si viene POST, guardar en sesión
 if (isset($_POST['nombre'])) {
     $_SESSION['nombre_usuario'] = $_POST['nombre'];
 }
@@ -14,27 +13,38 @@ if (isset($_POST['nombre'])) {
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Tu Outfit Personalizado</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
-    <link href="estilos.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Outfit — PILCHA IA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="estilosresul.css">
 </head>
 <body>
-    <div class="contenedor">
-        <header>
-            <div class="logo" style="color: #800020; font-weight: 800; font-size: 1.5rem; margin-bottom: 10px;">PILCHA IA</div>
-            <h1>Tu Propuesta de Estilo</h1>
-            <p>Hemos seleccionado estas prendas para tu outfit.</p>
-        </header>
 
-        <main>
-            <?php 
-                generarOutfit();
-            ?>
-        </main>
+<!-- NAV — idéntico al de index.php -->
+<nav class="nav">
+    <a href="portada0.php" class="nav-brand">PILCHA<span> IA</span></a>
+    <span class="nav-tagline">Tu outfit personalizado</span>
+</nav>
 
-        <footer style="margin-top: 50px; text-align: center; border-top: 1px solid #eee; padding-top: 20px;">
-            <p style="color: #999; font-size: 0.8rem;">&copy; 2026 Outfit AI</p>
-        </footer>
+<div class="page">
+
+    <div class="result-header">
+        <h1>Tu Outfit</h1>
+        <p>Selección personalizada basada en tu estilo</p>
     </div>
+
+    <main>
+        <?php generarOutfit(); ?>
+    </main>
+
+   
+
+    <footer class="result-footer">
+        &copy; 2026 PILCHA IA
+    </footer>
+
+</div>
+
 </body>
 </html>
