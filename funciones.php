@@ -8,7 +8,7 @@ define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
 // Modo debug: en TRUE muestra errores en pantalla. Pasar a FALSE en producción.
-define('DEBUG_MODE', false);
+define('DEBUG_MODE', true);
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -106,22 +106,61 @@ function supabaseInsert($table, $data) {
 }
 
 // ============================================================
+//  VERIFICAR LOGIN CONTRA SUPABASE
+// ============================================================
+function verificarLogin($usuario, $contrasena) {
+    $query = '?usuario=eq.' . urlencode($usuario)
+           . '&contrasena=eq.' . urlencode($contrasena)
+           . '&select=usuario'
+           . '&limit=1';
+
+    $resultado = supabaseRequest('cuentas', $query);
+
+    if ($resultado && count($resultado) > 0) {
+        return $resultado[0];
+    }
+
+    return null;
+}
+
+function crearCuenta($usuario, $contrasena) {
+    // Verificar si el usuario ya existe
+    $existe = supabaseRequest('cuentas', '?usuario=eq.' . urlencode($usuario) . '&select=id&limit=1');
+    if ($existe && count($existe) > 0) {
+        return 'existe';
+    }
+
+    $ok = supabaseInsert('cuentas', [
+        'usuario'    => $usuario,
+        'contrasena' => $contrasena,
+    ]);
+
+    return $ok ? 'ok' : 'error';
+}
+
+// ============================================================
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    // Leer y sanitizar datos del formulario
+ $clave_actual = md5($genero . $estilo . $tamano . $talle . $color_remera . $color_pantalon);
+
+if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave_actual) {
+    mostrarOutfit($_SESSION['outfit']);
+    return;
+}
     $genero = sanitizar($_POST['genero']  ?? '');
     $estilo = sanitizar($_POST['gustos']  ?? '');
-    $tamano = sanitizar($_POST['tamaño']  ?? '');   // sin tilde internamente
+    $tamano = sanitizar($_POST['tamaño']  ?? '');
 
-    // Validar que los tres campos lleguen
     if (!$genero || !$estilo || !$tamano) {
-        mostrarError("Faltan datos del formulario. Por favor volvé e intentá de nuevo.");
-        debugLog("POST recibido: " . print_r($_POST, true));
+        mostrarError("Faltan datos del formulario.");
         return;
     }
 
-    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano);
+    $color_remera   = $_POST['color_remera']   ?? '#ffffff';
+$color_pantalon = $_POST['color_pantalon'] ?? '#333333';
+$talle = sanitizar($_POST['talle'] ?? '');
+$outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon, $talle);
 
     if ($outfit && count($outfit) > 0) {
         mostrarOutfit($outfit);
@@ -130,49 +169,115 @@ function generarOutfit() {
         $altura = sanitizar($_POST['altura']  ?? '');
         guardarPreferenciasUsuario($_POST['nombre'] ?? 'Usuario', $genero, $estilo, $paleta, $pelo, $altura);
     } else {
-        mostrarError("No encontramos prendas para esa combinación. Probá con otra selección.");
+        mostrarError("No encontramos prendas para esa combinación.");
     }
+    $_SESSION['outfit'] = $outfit;
+    $_SESSION['outfit_clave'] = $clave_actual;
 }
 
 // ============================================================
 //  ARMAR UN OUTFIT COMPLETO (una prenda por tipo)
 // ============================================================
-function obtenerOutfitCompleto($genero, $estilo, $tamano) {
+function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333', $talle = '') {
     $outfit = [];
-    $tipos  = ['remera', 'pantalon', 'zapatos'];
 
-    foreach ($tipos as $tipo) {
-        /*
-         * Sintaxis correcta de PostgREST para filtros:
-         *   in.()   → sin comillas para strings simples
-         *   eq.     → igualdad exacta
-         * Los valores se pasan URL-encoded para evitar problemas con
-         * caracteres especiales (tildes, espacios, etc.)
-         */
-        $query = '?genero=in.(' . urlencode($genero) . ',unisex)'
-               . '&estilo=eq.'  . urlencode($estilo)
-               . '&tamano=eq.'  . urlencode($tamano)   // ← columna sin tilde (renombrá en Supabase)
-               . '&tipo=eq.'    . urlencode($tipo)
-               . '&select=id,nombre,tipo,foto'
-               . '&limit=100';
+    // Si es femenino y no es deportivo, verificar si hay vestido disponible
+$tiene_vestido = false;
+if ($genero === 'femenino' && $estilo !== 'deportivo') {
+    $query_vestido = '?genero=in.(femenino,unisex)'
+        . '&estilo=eq.'  . urlencode($estilo)
+        . '&tamano=eq.'  . urlencode($tamano)
+        . '&tipo=eq.vestido'
+        . '&select=id,nombre,tipo,foto,hex&limit=100';
 
-        $prendas = supabaseRequest(TABLE_PRENDAS, $query);
+    $vestidos = supabaseRequest(TABLE_PRENDAS, $query_vestido);
+    $vestidos = array_values(array_filter($vestidos ?? [], function($p) {
+        return !empty($p['foto']);
+    }));
 
-        debugLog("Tipo: $tipo | Query: $query | Resultados: " . count($prendas ?? []));
+    // Solo usar vestido el 50% de las veces que haya uno disponible
+    $tiene_vestido = count($vestidos) > 0 && rand(0, 1) === 1;
+}
 
-        if ($prendas && count($prendas) > 0) {
-            // Filtrar las que tienen foto
-            $conFoto = array_filter($prendas, fn($p) => !empty($p['foto']));
+// Definir tipos según si hay vestido disponible
+if ($tiene_vestido) {
+    $colores = [
+        'vestido'  => $color_remera,  // usa el color superior para el vestido
+        'zapatos'  => null,
+    ];
+} else {
+    $colores = [
+        'remera'   => $color_remera,
+        'pantalon' => $color_pantalon,
+        'zapatos'  => null,
+    ];
+}
+
+    foreach ($colores as $tipo => $color_elegido) {
+
+        // Intentos en orden: exacto → sin tamaño → sin estilo ni tamaño
+        $intentos = [];
+
+// Solo agregar intento con talle si el usuario lo seleccionó
+if ($talle !== '') {
+    $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+        . '&estilo=eq.' . urlencode($estilo)
+        . '&tamano=eq.' . urlencode($tamano)
+        . '&talle=eq.'  . urlencode($talle)
+        . '&tipo=eq.'   . urlencode($tipo)
+        . '&select=id,nombre,tipo,foto,hex&limit=100';
+}
+
+$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+    . '&estilo=eq.' . urlencode($estilo)
+    . '&tamano=eq.' . urlencode($tamano)
+    . '&tipo=eq.'   . urlencode($tipo)
+    . '&select=id,nombre,tipo,foto,hex&limit=100';
+
+$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+    . '&estilo=eq.' . urlencode($estilo)
+    . '&tipo=eq.'   . urlencode($tipo)
+    . '&select=id,nombre,tipo,foto,hex&limit=100';
+
+$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+    . '&tipo=eq.'   . urlencode($tipo)
+    . '&select=id,nombre,tipo,foto,hex&limit=100';
+
+        $prendas = [];
+        foreach ($intentos as $query) {
+            $resultado = supabaseRequest(TABLE_PRENDAS, $query);
+            $conFoto   = array_values(array_filter($resultado ?? [], function($p) {
+                return !empty($p['foto']);
+            }));
 
             if (count($conFoto) > 0) {
-                $outfit[] = $conFoto[array_rand($conFoto)];
+                $prendas = $conFoto;
+                break; // encontró, no sigue relajando
             }
+        }
+
+        if (count($prendas) === 0) continue;
+
+        if ($color_elegido !== null && !empty($prendas[0]['hex'])) {
+            $mejor    = null;
+            $min_dist = PHP_INT_MAX;
+
+            foreach ($prendas as $prenda) {
+                $dist = distanciaColor($color_elegido, $prenda['hex'] ?? '#000000');
+                if ($dist < $min_dist) {
+                    $min_dist = $dist;
+                    $mejor    = $prenda;
+                }
+            }
+
+            $outfit[] = $mejor;
+        } else {
+            $outfit[] = $prendas[array_rand($prendas)];
         }
     }
 
     return $outfit;
 }
-
 // ============================================================
 //  MOSTRAR EL OUTFIT EN PANTALLA
 // ============================================================
@@ -183,7 +288,7 @@ function mostrarOutfit($outfit) {
     foreach ($outfit as $prenda) {
         $foto   = htmlspecialchars($prenda['foto']   ?? '');
         $nombre = htmlspecialchars($prenda['nombre'] ?? 'Prenda');
-        $ruta   = $foto; // URL directa de imgbb
+        $ruta   = $foto;
 
         echo "<div class='ficha2' style='display:flex;flex-direction:column;align-items:center;background:#fafafa;border:1px solid #eee;border-radius:14px;padding:16px;width:220px;'>";
         echo "  <div style='width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,0.08);'>";
@@ -203,7 +308,7 @@ function mostrarOutfit($outfit) {
     echo "</form>";
 
     echo "<p style='text-align:center;margin-top:20px;'>";
-    echo "  <a href='portada.php'>Click aquí para nuevo usuario</a>";
+    echo "<a href='logout.php'>Cerrar sesión</a>";
     echo "</p>";
 }
 
@@ -234,29 +339,11 @@ function guardarPreferenciasUsuario($nombre, $genero, $estilo, $paleta = '', $pe
         'genero'          => $genero,
         'estilo_favorito' => $estilo,
         'paleta_piel'     => $paleta,
-        'pelo'            => $pelo,
+        'pelo' => trim($_POST['pelo'] ?? ''),
         'altura'          => $altura,
     ];
 
     supabaseInsert(TABLE_USUARIOS, $datos);
-}
-
-// ============================================================
-//  VERIFICAR LOGIN CONTRA SUPABASE
-// ============================================================
-function verificarLogin($usuario, $contrasena) {
-    $query = '?usuario=eq.' . urlencode($usuario)
-           . '&contrasena=eq.' . urlencode($contrasena)
-           . '&select=usuario'
-           . '&limit=1';
-
-    $resultado = supabaseRequest('cuentas', $query);
-
-    if ($resultado && count($resultado) > 0) {
-        return $resultado[0];
-    }
-
-    return null;
 }
 
 // ============================================================
@@ -280,4 +367,19 @@ function debugLog($mensaje) {
                       font-size:0.8rem;text-align:left;color:#721c24;'>";
     echo "  🔍 DEBUG: " . htmlspecialchars($mensaje);
     echo "</div>";
+}
+
+function distanciaColor($hex1, $hex2) {
+    $hex1 = ltrim($hex1, '#');
+    $hex2 = ltrim($hex2, '#');
+
+    $r1 = hexdec(substr($hex1, 0, 2));
+    $g1 = hexdec(substr($hex1, 2, 2));
+    $b1 = hexdec(substr($hex1, 4, 2));
+
+    $r2 = hexdec(substr($hex2, 0, 2));
+    $g2 = hexdec(substr($hex2, 2, 2));
+    $b2 = hexdec(substr($hex2, 4, 2));
+
+    return sqrt(pow($r1-$r2, 2) + pow($g1-$g2, 2) + pow($b1-$b2, 2));
 }
