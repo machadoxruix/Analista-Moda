@@ -1,7 +1,6 @@
-
 {
   "name": "Analista Moda",
-  "postStartCommand": "sudo service apache2 start",
+  "postStartCommand": "sudo service apache2 start && sudo sed -i 's|DocumentRoot /var/www/html|DocumentRoot /workspaces/Analista-Moda|g' /etc/apache2/sites-enabled/000-default.conf && echo '<Directory /workspaces/Analista-Moda>\\n    Options Indexes FollowSymLinks\\n    AllowOverride All\\n    Require all granted\\n</Directory>' | sudo tee -a /etc/apache2/sites-enabled/000-default.conf && sudo service apache2 restart",
   "forwardPorts": [80],
   "portsAttributes": {
     "80": {
