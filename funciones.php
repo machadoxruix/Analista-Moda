@@ -104,7 +104,7 @@ function crearCuenta($usuario, $contrasena) {
 // ============================================================
 function generarOutfit() {
     session_destroy();
-session_start();
+    session_start();
     // Recarga sin POST: mostrar outfit en sesión si existe
     if (empty($_POST) && isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
         mostrarOutfit($_SESSION['outfit']);
@@ -151,7 +151,6 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
     $outfit = [];
 
     $tiene_vestido = false;
-    debugLog("Parámetros: genero=$genero | estilo=$estilo | tamano=$tamano");
     if ($genero === 'femenino' && $estilo !== 'deportivo') {
         $query_vestido = '?genero=in.(femenino,unisex)'
             . '&estilo=eq.' . urlencode($estilo)
@@ -165,7 +164,6 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
         }));
         $tiene_vestido = count($vestidos) > 0;
     }
-    debugLog("Vestidos encontrados: " . count($vestidos) . " | tiene_vestido: " . ($tiene_vestido ? 'SI' : 'NO'));
 
     if ($tiene_vestido) {
         $colores = ['vestido' => $color_remera, 'zapatos' => null];
