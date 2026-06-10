@@ -103,7 +103,12 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    // Definir variables ANTES de usarlas en md5
+    // Recarga sin POST: mostrar outfit en sesión si existe
+    if (empty($_POST) && isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
+        mostrarOutfit($_SESSION['outfit']);
+        return;
+    }
+
     $genero         = sanitizar($_POST['genero']        ?? '');
     $estilo         = sanitizar($_POST['gustos']        ?? '');
     $tamano         = sanitizar($_POST['tamaño']        ?? '');
@@ -111,7 +116,6 @@ function generarOutfit() {
     $color_remera   = $_POST['color_remera']            ?? '#ffffff';
     $color_pantalon = $_POST['color_pantalon']          ?? '#333333';
 
-    // Caché de sesión: si los parámetros no cambiaron, mostrar el mismo outfit
     $clave_actual = md5($genero . $estilo . $tamano . $talle . $color_remera . $color_pantalon);
     if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave_actual) {
         mostrarOutfit($_SESSION['outfit']);
@@ -144,7 +148,6 @@ function generarOutfit() {
 function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333', $talle = '') {
     $outfit = [];
 
-    // Lógica de vestido: solo femenino, no deportivo, 50% de probabilidad
     $tiene_vestido = false;
     if ($genero === 'femenino' && $estilo !== 'deportivo') {
         $query_vestido = '?genero=in.(femenino,unisex)'
@@ -160,22 +163,13 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
         $tiene_vestido = count($vestidos) > 0 && rand(0, 1) === 1;
     }
 
-    // Definir tipos según si hay vestido
     if ($tiene_vestido) {
-        $colores = [
-            'vestido' => $color_remera,
-            'zapatos' => null,
-        ];
+        $colores = ['vestido' => $color_remera, 'zapatos' => null];
     } else {
-        $colores = [
-            'remera'   => $color_remera,
-            'pantalon' => $color_pantalon,
-            'zapatos'  => null,
-        ];
+        $colores = ['remera' => $color_remera, 'pantalon' => $color_pantalon, 'zapatos' => null];
     }
 
     foreach ($colores as $tipo => $color_elegido) {
-        // Intentos en orden: con talle → sin talle → sin tamano → solo genero+tipo
         $intentos = [];
 
         if ($talle !== '') {
@@ -208,23 +202,22 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
             $conFoto   = array_values(array_filter($resultado ?? [], function($p) {
                 return !empty($p['foto']);
             }));
-            if (count($conFoto) > 0) {
-                $prendas = $conFoto;
-                break;
-            }
+            if (count($conFoto) > 0) { $prendas = $conFoto; break; }
         }
 
         if (count($prendas) === 0) continue;
 
-        if ($color_elegido !== null && !empty($prendas[0]['hex'])) {
+        // ✅ Verificar si alguna prenda tiene hex, no solo la primera
+        $prendas_con_hex = array_values(array_filter($prendas, function($p) {
+            return !empty($p['hex']);
+        }));
+
+        if ($color_elegido !== null && count($prendas_con_hex) > 0) {
             $mejor    = null;
             $min_dist = PHP_INT_MAX;
-            foreach ($prendas as $prenda) {
-                $dist = distanciaColor($color_elegido, $prenda['hex'] ?? '#000000');
-                if ($dist < $min_dist) {
-                    $min_dist = $dist;
-                    $mejor    = $prenda;
-                }
+            foreach ($prendas_con_hex as $prenda) {
+                $dist = distanciaColor($color_elegido, $prenda['hex']);
+                if ($dist < $min_dist) { $min_dist = $dist; $mejor = $prenda; }
             }
             $outfit[] = $mejor;
         } else {
