@@ -163,13 +163,14 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
         }));
         $tiene_vestido = count($vestidos) > 0 && rand(1, 10) === 7;
     }
+    debugLog("Vestidos encontrados: " . count($vestidos) . " | tiene_vestido: " . ($tiene_vestido ? 'SI' : 'NO'));
 
     if ($tiene_vestido) {
         $colores = ['vestido' => $color_remera, 'zapatos' => null];
     } else {
         $colores = ['remera' => $color_remera, 'pantalon' => $color_pantalon, 'zapatos' => null];
     }
-    debugLog("Vestidos encontrados: " . count($vestidos) . " | tiene_vestido: " . ($tiene_vestido ? 'SI' : 'NO'));
+    
 
     foreach ($colores as $tipo => $color_elegido) {
         $intentos = [];
