@@ -7,7 +7,7 @@ define('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
-define('DEBUG_MODE', false);
+define('DEBUG_MODE', true);
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
