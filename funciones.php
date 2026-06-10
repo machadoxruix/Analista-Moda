@@ -163,7 +163,7 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
         $vestidos = array_values(array_filter($vestidos ?? [], function($p) {
             return !empty($p['foto']);
         }));
-        $tiene_vestido = count($vestidos) > 0 && rand(1, 10) === 7;
+        $tiene_vestido = count($vestidos) > 0;
     }
     debugLog("Vestidos encontrados: " . count($vestidos) . " | tiene_vestido: " . ($tiene_vestido ? 'SI' : 'NO'));
 
