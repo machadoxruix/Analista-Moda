@@ -7,8 +7,7 @@ define('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
-// Modo debug: en TRUE muestra errores en pantalla. Pasar a FALSE en producción.
-define('DEBUG_MODE', true);
+define('DEBUG_MODE', false);
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -17,11 +16,6 @@ if (session_status() == PHP_SESSION_NONE) {
 // ============================================================
 //  FUNCIONES DE COMUNICACIÓN CON SUPABASE  (usando cURL)
 // ============================================================
-
-/**
- * GET  → trae registros de una tabla.
- * $query es la querystring de PostgREST, ej: "?tipo=eq.remera&limit=10"
- */
 function supabaseRequest($table, $query = '') {
     $url = SUPABASE_URL . '/rest/v1/' . $table . $query;
 
@@ -29,7 +23,7 @@ function supabaseRequest($table, $query = '') {
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER     => [
-            'apikey: '        . SUPABASE_KEY,
+            'apikey: '               . SUPABASE_KEY,
             'Authorization: Bearer ' . SUPABASE_KEY,
             'Content-Type: application/json',
             'Accept: application/json',
@@ -38,36 +32,20 @@ function supabaseRequest($table, $query = '') {
         CURLOPT_SSL_VERIFYPEER => true,
     ]);
 
-    $response   = curl_exec($ch);
-    $httpCode   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError  = curl_error($ch);
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
     curl_close($ch);
 
-    // Log de errores cURL
-    if ($curlError) {
-        debugLog("cURL error en GET $table: $curlError");
-        return null;
-    }
-
-    // Log de respuestas HTTP no exitosas
-    if ($httpCode < 200 || $httpCode >= 300) {
-        debugLog("HTTP $httpCode en GET $table$query — Respuesta: $response");
-        return null;
-    }
+    if ($curlError) { debugLog("cURL error en GET $table: $curlError"); return null; }
+    if ($httpCode < 200 || $httpCode >= 300) { debugLog("HTTP $httpCode en GET $table$query — Respuesta: $response"); return null; }
 
     $decoded = json_decode($response, true);
-
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        debugLog("JSON inválido en GET $table: " . json_last_error_msg());
-        return null;
-    }
+    if (json_last_error() !== JSON_ERROR_NONE) { debugLog("JSON inválido en GET $table: " . json_last_error_msg()); return null; }
 
     return $decoded;
 }
 
-/**
- * POST → inserta un registro en una tabla.
- */
 function supabaseInsert($table, $data) {
     $url = SUPABASE_URL . '/rest/v1/' . $table;
 
@@ -77,7 +55,7 @@ function supabaseInsert($table, $data) {
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode($data),
         CURLOPT_HTTPHEADER     => [
-            'apikey: '        . SUPABASE_KEY,
+            'apikey: '               . SUPABASE_KEY,
             'Authorization: Bearer ' . SUPABASE_KEY,
             'Content-Type: application/json',
             'Accept: application/json',
@@ -92,49 +70,32 @@ function supabaseInsert($table, $data) {
     $curlError = curl_error($ch);
     curl_close($ch);
 
-    if ($curlError) {
-        debugLog("cURL error en INSERT $table: $curlError");
-        return false;
-    }
-
-    if ($httpCode < 200 || $httpCode >= 300) {
-        debugLog("HTTP $httpCode en INSERT $table — Respuesta: $response");
-        return false;
-    }
+    if ($curlError) { debugLog("cURL error en INSERT $table: $curlError"); return false; }
+    if ($httpCode < 200 || $httpCode >= 300) { debugLog("HTTP $httpCode en INSERT $table — Respuesta: $response"); return false; }
 
     return true;
 }
 
 // ============================================================
-//  VERIFICAR LOGIN CONTRA SUPABASE
+//  AUTH
 // ============================================================
 function verificarLogin($usuario, $contrasena) {
-    $query = '?usuario=eq.' . urlencode($usuario)
+    $query = '?usuario=eq.'    . urlencode($usuario)
            . '&contrasena=eq.' . urlencode($contrasena)
-           . '&select=usuario'
-           . '&limit=1';
+           . '&select=usuario&limit=1';
 
     $resultado = supabaseRequest('cuentas', $query);
-
-    if ($resultado && count($resultado) > 0) {
-        return $resultado[0];
-    }
-
-    return null;
+    return ($resultado && count($resultado) > 0) ? $resultado[0] : null;
 }
 
 function crearCuenta($usuario, $contrasena) {
-    // Verificar si el usuario ya existe
     $existe = supabaseRequest('cuentas', '?usuario=eq.' . urlencode($usuario) . '&select=id&limit=1');
-    if ($existe && count($existe) > 0) {
-        return 'existe';
-    }
+    if ($existe && count($existe) > 0) return 'existe';
 
     $ok = supabaseInsert('cuentas', [
         'usuario'    => $usuario,
         'contrasena' => $contrasena,
     ]);
-
     return $ok ? 'ok' : 'error';
 }
 
@@ -142,27 +103,31 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
- $clave_actual = md5($genero . $estilo . $tamano . $talle . $color_remera . $color_pantalon);
+    // Definir variables ANTES de usarlas en md5
+    $genero         = sanitizar($_POST['genero']        ?? '');
+    $estilo         = sanitizar($_POST['gustos']        ?? '');
+    $tamano         = sanitizar($_POST['tamaño']        ?? '');
+    $talle          = sanitizar($_POST['talle']         ?? '');
+    $color_remera   = $_POST['color_remera']            ?? '#ffffff';
+    $color_pantalon = $_POST['color_pantalon']          ?? '#333333';
 
-if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave_actual) {
-    mostrarOutfit($_SESSION['outfit']);
-    return;
-}
-    $genero = sanitizar($_POST['genero']  ?? '');
-    $estilo = sanitizar($_POST['gustos']  ?? '');
-    $tamano = sanitizar($_POST['tamaño']  ?? '');
+    // Caché de sesión: si los parámetros no cambiaron, mostrar el mismo outfit
+    $clave_actual = md5($genero . $estilo . $tamano . $talle . $color_remera . $color_pantalon);
+    if (isset($_SESSION['outfit']) && $_SESSION['outfit_clave'] === $clave_actual) {
+        mostrarOutfit($_SESSION['outfit']);
+        return;
+    }
 
     if (!$genero || !$estilo || !$tamano) {
         mostrarError("Faltan datos del formulario.");
         return;
     }
 
-    $color_remera   = $_POST['color_remera']   ?? '#ffffff';
-$color_pantalon = $_POST['color_pantalon'] ?? '#333333';
-$talle = sanitizar($_POST['talle'] ?? '');
-$outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon, $talle);
+    $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon, $talle);
 
     if ($outfit && count($outfit) > 0) {
+        $_SESSION['outfit']       = $outfit;
+        $_SESSION['outfit_clave'] = $clave_actual;
         mostrarOutfit($outfit);
         $paleta = sanitizar($_POST['paleta'] ?? '');
         $pelo   = sanitizar($_POST['pelo']   ?? '');
@@ -171,77 +136,71 @@ $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color
     } else {
         mostrarError("No encontramos prendas para esa combinación.");
     }
-    $_SESSION['outfit'] = $outfit;
-    $_SESSION['outfit_clave'] = $clave_actual;
 }
 
 // ============================================================
-//  ARMAR UN OUTFIT COMPLETO (una prenda por tipo)
+//  ARMAR UN OUTFIT COMPLETO
 // ============================================================
 function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333', $talle = '') {
     $outfit = [];
 
-    // Si es femenino y no es deportivo, verificar si hay vestido disponible
-$tiene_vestido = false;
-if ($genero === 'femenino' && $estilo !== 'deportivo') {
-    $query_vestido = '?genero=in.(femenino,unisex)'
-        . '&estilo=eq.'  . urlencode($estilo)
-        . '&tamano=eq.'  . urlencode($tamano)
-        . '&tipo=eq.vestido'
-        . '&select=id,nombre,tipo,foto,hex&limit=100';
+    // Lógica de vestido: solo femenino, no deportivo, 50% de probabilidad
+    $tiene_vestido = false;
+    if ($genero === 'femenino' && $estilo !== 'deportivo') {
+        $query_vestido = '?genero=in.(femenino,unisex)'
+            . '&estilo=eq.' . urlencode($estilo)
+            . '&tamano=eq.' . urlencode($tamano)
+            . '&tipo=eq.vestido'
+            . '&select=id,nombre,tipo,foto,hex&limit=100';
 
-    $vestidos = supabaseRequest(TABLE_PRENDAS, $query_vestido);
-    $vestidos = array_values(array_filter($vestidos ?? [], function($p) {
-        return !empty($p['foto']);
-    }));
+        $vestidos = supabaseRequest(TABLE_PRENDAS, $query_vestido);
+        $vestidos = array_values(array_filter($vestidos ?? [], function($p) {
+            return !empty($p['foto']);
+        }));
+        $tiene_vestido = count($vestidos) > 0 && rand(0, 1) === 1;
+    }
 
-    // Solo usar vestido el 50% de las veces que haya uno disponible
-    $tiene_vestido = count($vestidos) > 0 && rand(0, 1) === 1;
-}
-
-// Definir tipos según si hay vestido disponible
-if ($tiene_vestido) {
-    $colores = [
-        'vestido'  => $color_remera,  // usa el color superior para el vestido
-        'zapatos'  => null,
-    ];
-} else {
-    $colores = [
-        'remera'   => $color_remera,
-        'pantalon' => $color_pantalon,
-        'zapatos'  => null,
-    ];
-}
+    // Definir tipos según si hay vestido
+    if ($tiene_vestido) {
+        $colores = [
+            'vestido' => $color_remera,
+            'zapatos' => null,
+        ];
+    } else {
+        $colores = [
+            'remera'   => $color_remera,
+            'pantalon' => $color_pantalon,
+            'zapatos'  => null,
+        ];
+    }
 
     foreach ($colores as $tipo => $color_elegido) {
-
-        // Intentos en orden: exacto → sin tamaño → sin estilo ni tamaño
+        // Intentos en orden: con talle → sin talle → sin tamano → solo genero+tipo
         $intentos = [];
 
-// Solo agregar intento con talle si el usuario lo seleccionó
-if ($talle !== '') {
-    $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
-        . '&estilo=eq.' . urlencode($estilo)
-        . '&tamano=eq.' . urlencode($tamano)
-        . '&talle=eq.'  . urlencode($talle)
-        . '&tipo=eq.'   . urlencode($tipo)
-        . '&select=id,nombre,tipo,foto,hex&limit=100';
-}
+        if ($talle !== '') {
+            $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+                . '&estilo=eq.' . urlencode($estilo)
+                . '&tamano=eq.' . urlencode($tamano)
+                . '&talle=eq.'  . urlencode($talle)
+                . '&tipo=eq.'   . urlencode($tipo)
+                . '&select=id,nombre,tipo,foto,hex&limit=100';
+        }
 
-$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
-    . '&estilo=eq.' . urlencode($estilo)
-    . '&tamano=eq.' . urlencode($tamano)
-    . '&tipo=eq.'   . urlencode($tipo)
-    . '&select=id,nombre,tipo,foto,hex&limit=100';
+        $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+            . '&estilo=eq.' . urlencode($estilo)
+            . '&tamano=eq.' . urlencode($tamano)
+            . '&tipo=eq.'   . urlencode($tipo)
+            . '&select=id,nombre,tipo,foto,hex&limit=100';
 
-$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
-    . '&estilo=eq.' . urlencode($estilo)
-    . '&tipo=eq.'   . urlencode($tipo)
-    . '&select=id,nombre,tipo,foto,hex&limit=100';
+        $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+            . '&estilo=eq.' . urlencode($estilo)
+            . '&tipo=eq.'   . urlencode($tipo)
+            . '&select=id,nombre,tipo,foto,hex&limit=100';
 
-$intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
-    . '&tipo=eq.'   . urlencode($tipo)
-    . '&select=id,nombre,tipo,foto,hex&limit=100';
+        $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
+            . '&tipo=eq.'   . urlencode($tipo)
+            . '&select=id,nombre,tipo,foto,hex&limit=100';
 
         $prendas = [];
         foreach ($intentos as $query) {
@@ -249,10 +208,9 @@ $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
             $conFoto   = array_values(array_filter($resultado ?? [], function($p) {
                 return !empty($p['foto']);
             }));
-
             if (count($conFoto) > 0) {
                 $prendas = $conFoto;
-                break; // encontró, no sigue relajando
+                break;
             }
         }
 
@@ -261,7 +219,6 @@ $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
         if ($color_elegido !== null && !empty($prendas[0]['hex'])) {
             $mejor    = null;
             $min_dist = PHP_INT_MAX;
-
             foreach ($prendas as $prenda) {
                 $dist = distanciaColor($color_elegido, $prenda['hex'] ?? '#000000');
                 if ($dist < $min_dist) {
@@ -269,7 +226,6 @@ $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
                     $mejor    = $prenda;
                 }
             }
-
             $outfit[] = $mejor;
         } else {
             $outfit[] = $prendas[array_rand($prendas)];
@@ -278,55 +234,96 @@ $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
 
     return $outfit;
 }
+
 // ============================================================
-//  MOSTRAR EL OUTFIT EN PANTALLA
+//  MOSTRAR EL OUTFIT EN PANTALLA (collage editorial)
 // ============================================================
 function mostrarOutfit($outfit) {
-    echo "<h2 class='titulo-resultado'>Tu Outfit Personalizado</h2>";
-    echo "<div class='fichas'>";
+    $roles = [
+        'remera'   => 'slot-top',
+        'vestido'  => 'slot-top',    // vestido ocupa el mismo slot que remera
+        'pantalon' => 'slot-bottom',
+        'zapatos'  => 'slot-shoes',
+    ];
 
+    // Construir array indexado por tipo
+    $prendas_por_tipo = [];
     foreach ($outfit as $prenda) {
+        $tipo = $prenda['tipo'] ?? '';
+        if (isset($roles[$tipo])) {
+            $prendas_por_tipo[$tipo] = $prenda;
+        }
+    }
+
+    // Fallback: si las prendas no tienen campo tipo, usar orden de llegada
+    if (empty($prendas_por_tipo)) {
+        $keys = array_keys($roles);
+        foreach (array_values($outfit) as $i => $prenda) {
+            $tipo_key = $keys[$i] ?? 'remera';
+            $prendas_por_tipo[$tipo_key] = $prenda;
+        }
+    }
+
+    echo "<div class='collage-outer'>";
+
+    echo "<div class='collage-deco'>
+        <span class='deco-line deco-line-h'></span>
+        <span class='deco-line deco-line-v'></span>
+        <span class='deco-tag'>LOOK OF THE DAY</span>
+        <span class='deco-season'>SS 2026</span>
+    </div>";
+
+    echo "<div class='outfit-collage'>";
+
+    $orden = ['remera', 'vestido', 'pantalon', 'zapatos'];
+    foreach ($orden as $tipo) {
+        if (!isset($prendas_por_tipo[$tipo])) continue;
+        $prenda = $prendas_por_tipo[$tipo];
         $foto   = htmlspecialchars($prenda['foto']   ?? '');
         $nombre = htmlspecialchars($prenda['nombre'] ?? 'Prenda');
-        $ruta   = $foto;
+        $slot   = $roles[$tipo];
+        $label  = ucfirst($tipo);
 
-        echo "<div class='ficha2' style='display:flex;flex-direction:column;align-items:center;background:#fafafa;border:1px solid #eee;border-radius:14px;padding:16px;width:220px;'>";
-        echo "  <div style='width:200px;height:200px;display:flex;align-items:center;justify-content:center;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,0.08);'>";
-        echo "    <img src='{$ruta}' alt='{$nombre}' loading='lazy' style='max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;'>";
+        echo "<div class='collage-piece {$slot}'>";
+        echo "  <div class='collage-piece-inner'>";
+        echo "    <img src='{$foto}' alt='{$nombre}' loading='lazy'>";
         echo "  </div>";
-        echo "  <p style='margin-top:10px;font-weight:600;color:#444;font-size:0.9rem;text-align:center;'>{$nombre}</p>";
+        echo "  <span class='piece-label'>{$nombre}</span>";
+        echo "  <span class='piece-type-tag'>{$label}</span>";
         echo "</div>";
     }
 
     echo "</div>";
 
-    // Botón para rehacer el test con el mismo usuario
-    $nombre = htmlspecialchars($_SESSION['nombre_usuario'] ?? 'Usuario');
-    echo "<form method='POST' action='index.php' style='text-align:center;margin-top:30px;'>";
-    echo "  <input type='hidden' name='nombre_usuario' value='{$nombre}'>";
-    echo "  <button type='submit' class='rehacer'>← REHACER COMPLETO</button>";
-    echo "</form>";
+    // Strip inferior de nombres
+    echo "<div class='collage-strip'>";
+    $idx = 1;
+    foreach ($orden as $tipo) {
+        if (!isset($prendas_por_tipo[$tipo])) continue;
+        $nombre = htmlspecialchars($prendas_por_tipo[$tipo]['nombre'] ?? '');
+        echo "<div class='strip-item'>";
+        echo "  <span class='strip-num'>0{$idx}</span>";
+        echo "  <span class='strip-name'>{$nombre}</span>";
+        echo "</div>";
+        $idx++;
+    }
+    echo "</div>";
 
-    echo "<p style='text-align:center;margin-top:20px;'>";
-    echo "<a href='logout.php'>Cerrar sesión</a>";
-    echo "</p>";
+    echo "</div>";
+
+    echo "<div class='result-actions' style='margin-top:32px;'>";
+    echo "  <a href='index.php' class='btn-rehacer'>ARMAR OTRO OUTFIT</a>";
+    echo "</div>";
 }
 
 // ============================================================
 //  MOSTRAR ERROR AMIGABLE
 // ============================================================
 function mostrarError($mensaje) {
-    $nombre = htmlspecialchars($_SESSION['nombre_usuario'] ?? 'Usuario');
-
-    echo "<div style='text-align:center;padding:20px;background:#fff3cd;
-                      border:1px solid #ffc107;border-radius:10px;margin:20px 0;'>";
-    echo "  <h3 style='color:#856404;'>¡Ups!</h3>";
-    echo "  <p style='color:#856404;'>" . htmlspecialchars($mensaje) . "</p>";
-
-    echo "  <form method='POST' action='index.php' style='margin-top:15px;'>";
-    echo "    <input type='hidden' name='nombre_usuario' value='{$nombre}'>";
-    echo "    <button type='submit' class='rehacer'>Intentar de nuevo</button>";
-    echo "  </form>";
+    echo "<div class='error-box' style='text-align:center;'>";
+    echo "  <h3>¡Ups!</h3>";
+    echo "  <p>" . htmlspecialchars($mensaje) . "</p>";
+    echo "  <a href='index.php' class='btn-rehacer' style='display:inline-block;margin-top:16px;'>Intentar de nuevo</a>";
     echo "</div>";
 }
 
@@ -339,29 +336,21 @@ function guardarPreferenciasUsuario($nombre, $genero, $estilo, $paleta = '', $pe
         'genero'          => $genero,
         'estilo_favorito' => $estilo,
         'paleta_piel'     => $paleta,
-        'pelo' => trim($_POST['pelo'] ?? ''),
+        'pelo'            => trim($_POST['pelo'] ?? ''),
         'altura'          => $altura,
     ];
-
     supabaseInsert(TABLE_USUARIOS, $datos);
 }
 
 // ============================================================
 //  HELPERS
 // ============================================================
-
-/** Limpia una cadena: elimina espacios y caracteres peligrosos */
 function sanitizar($valor) {
     return htmlspecialchars(strip_tags(trim($valor)), ENT_QUOTES, 'UTF-8');
 }
 
-/**
- * Log de debug. Con DEBUG_MODE = true muestra en pantalla.
- * En producción, cambiar a false para que solo escriba en un archivo de log.
- */
 function debugLog($mensaje) {
     if (!DEBUG_MODE) return;
-
     echo "<div style='background:#f8d7da;border:1px solid #f5c6cb;border-radius:6px;
                       padding:8px 14px;margin:6px 0;font-family:monospace;
                       font-size:0.8rem;text-align:left;color:#721c24;'>";
