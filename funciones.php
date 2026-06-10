@@ -149,6 +149,7 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
     $outfit = [];
 
     $tiene_vestido = false;
+    debugLog("Parámetros: genero=$genero | estilo=$estilo | tamano=$tamano");
     if ($genero === 'femenino' && $estilo !== 'deportivo') {
         $query_vestido = '?genero=in.(femenino,unisex)'
             . '&estilo=eq.' . urlencode($estilo)
@@ -168,6 +169,7 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
     } else {
         $colores = ['remera' => $color_remera, 'pantalon' => $color_pantalon, 'zapatos' => null];
     }
+    debugLog("Vestidos encontrados: " . count($vestidos) . " | tiene_vestido: " . ($tiene_vestido ? 'SI' : 'NO'));
 
     foreach ($colores as $tipo => $color_elegido) {
         $intentos = [];
