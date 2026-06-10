@@ -103,6 +103,8 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
+    session_destroy();
+session_start();
     // Recarga sin POST: mostrar outfit en sesión si existe
     if (empty($_POST) && isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
         mostrarOutfit($_SESSION['outfit']);
