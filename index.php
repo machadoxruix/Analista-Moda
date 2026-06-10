@@ -24,7 +24,7 @@ $nombre = "Invitado";
 
 
 <nav class="nav">
-    <a href="E:\7mo info\estilos_prueba\portada0.php" class="nav-brand">PILCHA<span> IA</span></a>
+    <a href="portada0.php" class="nav-brand">PILCHA<span> IA</span></a>
     <span class="nav-tagline">Configurador de estilo</span>
 </nav>
 
