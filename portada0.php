@@ -269,7 +269,6 @@ $abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
 
     <div class="panel-links">
       <a href="#" onclick="openModal('registro'); return false;">Registrarse</a>
-      <a href="#">Restablecer contraseña</a>
     </div>
   </div>
 </aside>
