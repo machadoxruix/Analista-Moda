@@ -261,11 +261,6 @@ $abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
     <?php endif; ?>
 
 </div>
-
-    <div class="panel-links">
-      <a href="#" onclick="openModal('registro'); return false;">Registrarse</a>
-    </div>
-  </div>
 </aside>
 
 <!-- ══ MODAL DE REGISTRO ══ -->
