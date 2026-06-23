@@ -7,7 +7,7 @@ define('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
-define('DEBUG_MODE', false);
+define('DEBUG_MODE', true);
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -80,14 +80,21 @@ function supabaseInsert($table, $data) {
 //  AUTH
 // ============================================================
 function verificarLogin($usuario, $contrasena) {
-    $query = '?usuario=eq.'    . urlencode($usuario)
+    $query = '?usuario=eq.' . urlencode($usuario)
            . '&contrasena=eq.' . urlencode($contrasena)
-           . '&select=usuario&limit=1';
+           . '&select=usuario'
+           . '&limit=1';
 
     $resultado = supabaseRequest('cuentas', $query);
-    return ($resultado && count($resultado) > 0) ? $resultado[0] : null;
-}
 
+    debugLog("Login intento: usuario=$usuario | Query: $query | Resultados: " . count($resultado ?? []));
+
+    if ($resultado && count($resultado) > 0) {
+        return $resultado[0];
+    }
+
+    return null;
+}
 function crearCuenta($usuario, $contrasena) {
     $existe = supabaseRequest('cuentas', '?usuario=eq.' . urlencode($usuario) . '&select=id&limit=1');
     if ($existe && count($existe) > 0) return 'existe';
