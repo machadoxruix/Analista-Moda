@@ -88,6 +88,8 @@ function verificarLogin($usuario, $contrasena) {
     $resultado = supabaseRequest('cuentas', $query);
 
     debugLog("Login intento: usuario=$usuario | Query: $query | Resultados: " . count($resultado ?? []));
+    debugLog("Respuesta completa: " . print_r($resultado, true));
+    die(); // Detiene la ejecución para poder leer el debug
 
     if ($resultado && count($resultado) > 0) {
         return $resultado[0];
