@@ -64,6 +64,51 @@ $abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
 <link href="estilosport.css?v=<?php echo time(); ?>" rel="stylesheet" type="text/css">
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
+<style>
+    /* Modal de registro con el mismo estilo oscuro que el panel de login */
+    #modalRegistro .modal-box {
+        background: #0d0d0d;
+        border: 1px solid rgba(245,236,220,0.1);
+    }
+
+    #modalRegistro .modal-header {
+        border-bottom: 1px solid rgba(245,236,220,0.1);
+    }
+
+    #modalRegistro .modal-close {
+        color: rgba(245,236,220,0.5);
+    }
+    #modalRegistro .modal-close:hover {
+        color: #F5ECDC;
+    }
+
+    #modalRegistro .modal-title {
+        color: #F5ECDC;
+    }
+
+    #modalRegistro .modal-subtitle {
+        color: rgba(245,236,220,0.5);
+    }
+
+    #modalRegistro .field-label {
+        color: rgba(245,236,220,0.5);
+    }
+
+    #modalRegistro .field-input {
+        background: rgba(245,236,220,0.05);
+        border: 1px solid rgba(245,236,220,0.15);
+        color: #F5ECDC;
+    }
+
+    #modalRegistro .field-input::placeholder {
+        color: rgba(245,236,220,0.3);
+    }
+
+    #modalRegistro .field-input:focus {
+        border-color: #800020;
+        outline: none;
+    }
+</style>
 </head>
 <body>
 
