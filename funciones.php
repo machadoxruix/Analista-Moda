@@ -7,7 +7,7 @@ define('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
-define('DEBUG_MODE', true);
+define('DEBUG_MODE', false);
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
@@ -87,9 +87,6 @@ function verificarLogin($usuario, $contrasena) {
 
     $resultado = supabaseRequest('cuentas', $query);
 
-    debugLog("Login intento: usuario=$usuario | Query: $query | Resultados: " . count($resultado ?? []));
-    debugLog("Respuesta completa: " . print_r($resultado, true));
-    die(); // Detiene la ejecución para poder leer el debug
 
     if ($resultado && count($resultado) > 0) {
         return $resultado[0];

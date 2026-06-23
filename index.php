@@ -2,9 +2,16 @@
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
+
+// Si no hay sesión activa, redirigir al login
+if (!isset($_SESSION['nombre_usuario'])) {
+    header('Location: portada0.php');
+    exit;
+}
+
 unset($_SESSION['outfit']);
 
-$nombre = "Invitado";
+$nombre = $_SESSION['nombre_usuario'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
