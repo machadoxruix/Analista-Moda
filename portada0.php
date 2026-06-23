@@ -1,6 +1,56 @@
 <?php
 session_start();
+include_once('funciones.php');
 
+$error_login    = '';
+$error_registro = '';
+
+// ── PROCESAR LOGIN ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'login') {
+    $usuario    = trim($_POST['usuario']    ?? '');
+    $contrasena = trim($_POST['contrasena'] ?? '');
+
+    if (!$usuario || !$contrasena) {
+        $error_login = 'Completá usuario y contraseña.';
+    } else {
+        $cuenta = verificarLogin($usuario, $contrasena);
+        if ($cuenta) {
+            $_SESSION['nombre_usuario'] = $cuenta['usuario'];
+            header('Location: index.php');
+            exit;
+        } else {
+            $error_login = 'Usuario o contraseña incorrectos.';
+        }
+    }
+}
+
+// ── PROCESAR REGISTRO ──
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'registro') {
+    $usuario    = trim($_POST['usuario']    ?? '');
+    $contrasena = trim($_POST['contrasena'] ?? '');
+    $confirmar  = trim($_POST['confirmar']  ?? '');
+
+    if (!$usuario || !$contrasena || !$confirmar) {
+        $error_registro = 'Completá todos los campos.';
+    } elseif ($contrasena !== $confirmar) {
+        $error_registro = 'Las contraseñas no coinciden.';
+    } elseif (strlen($contrasena) < 4) {
+        $error_registro = 'La contraseña debe tener al menos 4 caracteres.';
+    } else {
+        $resultado = crearCuenta($usuario, $contrasena);
+        if ($resultado === 'ok') {
+            $_SESSION['nombre_usuario'] = $usuario;
+            header('Location: index.php');
+            exit;
+        } elseif ($resultado === 'existe') {
+            $error_registro = 'Ese nombre de usuario ya está en uso.';
+        } else {
+            $error_registro = 'Hubo un error al crear la cuenta. Intentá de nuevo.';
+        }
+    }
+}
+
+$abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -123,16 +173,25 @@ session_start();
     <p class="panel-title">Bienvenido</p>
     <p class="panel-sub">Ingresá para acceder a tu perfil y outfits guardados.</p>
 
-    <div class="field-group">
-      <label class="field-label" for="loginEmail">Email</label>
-      <input class="field-input" type="email" id="loginEmail" placeholder="tu@email.com" autocomplete="email">
-    </div>
-    <div class="field-group">
-      <label class="field-label" for="loginPass">Contraseña</label>
-      <input class="field-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
-    </div>
+    <?php if ($error_login): ?>
+        <div class="msg-error" style="background:#fff0f0;border:1px solid #f5c6c6;color:#a00020;border-radius:8px;padding:10px 14px;font-size:0.85rem;margin-bottom:14px;">
+            ⚠️ <?php echo htmlspecialchars($error_login); ?>
+        </div>
+    <?php endif; ?>
 
-    <button class="btn-ingresar" onclick="alert('Login simulado')">INGRESAR</button>
+    <form action="portada0.php" method="POST">
+        <input type="hidden" name="accion" value="login">
+        <div class="field-group">
+          <label class="field-label" for="loginUsuario">Usuario</label>
+          <input class="field-input" type="text" id="loginUsuario" name="usuario" placeholder="Tu nombre de usuario" autocomplete="username" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="loginPass">Contraseña</label>
+          <input class="field-input" type="password" id="loginPass" name="contrasena" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn-ingresar">INGRESAR</button>
+    </form>
 
     <div class="divider">o continuá con</div>
 
@@ -164,11 +223,48 @@ session_start();
     </div>
 
     <div class="panel-links">
-      <a href="#">Registrarse</a>
+      <a href="#" onclick="openModal('registro'); return false;">Registrarse</a>
       <a href="#">Restablecer contraseña</a>
     </div>
   </div>
 </aside>
+
+<!-- ══ MODAL DE REGISTRO ══ -->
+<div class="modal-overlay" id="modalRegistro" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="panel-logo" style="font-size:1.1rem;">PILCHA<span> IA</span></span>
+      <button class="modal-close" data-close-modal="registro" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-title">Crear cuenta</p>
+      <p class="modal-subtitle">Elegí un usuario y contraseña para empezar.</p>
+
+      <?php if ($error_registro): ?>
+        <div class="msg-error" style="background:#fff0f0;border:1px solid #f5c6c6;color:#a00020;border-radius:8px;padding:10px 14px;font-size:0.85rem;margin-bottom:14px;">
+            ⚠️ <?php echo htmlspecialchars($error_registro); ?>
+        </div>
+      <?php endif; ?>
+
+      <form action="portada0.php" method="POST">
+        <input type="hidden" name="accion" value="registro">
+        <div class="field-group">
+          <label class="field-label" for="regUsuario">Usuario</label>
+          <input class="field-input" type="text" id="regUsuario" name="usuario" placeholder="Elegí un usuario" autocomplete="username" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="regPass">Contraseña</label>
+          <input class="field-input" type="password" id="regPass" name="contrasena" placeholder="••••••••" autocomplete="new-password" required minlength="4">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="regConfirm">Confirmar contraseña</label>
+          <input class="field-input" type="password" id="regConfirm" name="confirmar" placeholder="••••••••" autocomplete="new-password" required minlength="4">
+        </div>
+        <button type="submit" class="btn-ingresar">CREAR CUENTA</button>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- ══ GOOGLE MODAL ══ -->
 <div class="modal-overlay" id="modalGoogle" role="dialog" aria-modal="true">
@@ -336,7 +432,8 @@ overlay.addEventListener('click', (e) => {
 const modals = {
   google:   document.getElementById('modalGoogle'),
   facebook: document.getElementById('modalFacebook'),
-  apple:    document.getElementById('modalApple')
+  apple:    document.getElementById('modalApple'),
+  registro: document.getElementById('modalRegistro')
 };
 
 function openModal(provider) {
@@ -376,6 +473,11 @@ document.addEventListener('keydown', (e) => {
     Object.keys(modals).forEach(k => closeModal(k));
   }
 });
+
+/* Si hubo error de registro, reabrir el modal automáticamente */
+if (<?php echo $abrir_registro; ?>) {
+    openModal('registro');
+}
 </script>
 
 </body>
