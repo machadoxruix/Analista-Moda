@@ -3,14 +3,13 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+include_once("funciones.php");
+
 // Procesar guardado de outfit
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guardar_outfit') {
-    include_once("funciones.php");
     guardarOutfitUsuario();
-    $_SESSION['outfit_guardado'] = true; // Para mostrar confirmación
+    $_SESSION['outfit_guardado'] = true;
 }
-
-include("funciones.php");
 
 if (isset($_POST['nombre'])) {
     $_SESSION['nombre_usuario'] = $_POST['nombre'];
@@ -29,7 +28,6 @@ if (isset($_POST['nombre'])) {
 </head>
 <body>
 
-<!-- NAV — idéntico al de index.php -->
 <nav class="nav">
     <a href="portada0.php" class="nav-brand">PILCHA<span> IA</span></a>
     <span class="nav-tagline">Tu outfit personalizado</span>
@@ -44,16 +42,15 @@ if (isset($_POST['nombre'])) {
 
     <main>
         <?php if (!empty($_SESSION['outfit_guardado'])): ?>
-     <div style="text-align:center;margin-top:16px;font-family:var(--font-mono);
-                font-size:0.75rem;color:var(--neon);letter-spacing:0.1em;">
-        ✓ OUTFIT GUARDADO EN TU HISTORIAL
-      </div>
-      <?php unset($_SESSION['outfit_guardado']); ?>
-    <?php endif; ?>
+            <div style="text-align:center;margin-bottom:16px;font-family:var(--font-mono);
+                        font-size:0.75rem;color:var(--neon);letter-spacing:0.1em;">
+                ✓ OUTFIT GUARDADO EN TU HISTORIAL
+            </div>
+            <?php unset($_SESSION['outfit_guardado']); ?>
+        <?php endif; ?>
+
         <?php generarOutfit(); ?>
     </main>
-
-   
 
     <footer class="result-footer">
         &copy; 2026 PILCHA IA
