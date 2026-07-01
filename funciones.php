@@ -138,6 +138,8 @@ function generarOutfit() {
     if ($outfit && count($outfit) > 0) {
         $_SESSION['outfit']       = $outfit;
         $_SESSION['outfit_clave'] = $clave_actual;
+        $_SESSION['outfit_estilo']    = $estilo;   // ← agregar
+        $_SESSION['outfit_genero']    = $genero;   // ← agregar
         mostrarOutfit($outfit);
         $paleta = sanitizar($_POST['paleta'] ?? '');
         $pelo   = sanitizar($_POST['pelo']   ?? '');
@@ -311,6 +313,14 @@ function mostrarOutfit($outfit) {
 
     echo "</div>";
 
+    // Solo mostrar si hay sesión activa
+if (isset($_SESSION['nombre_usuario'])) {
+    echo "<form method='POST' action='resultado.php' style='display:inline;'>";
+    echo "  <input type='hidden' name='accion' value='guardar_outfit'>";
+    echo "  <button type='submit' class='btn-rehacer' style='background:transparent;border:2px solid var(--neon);color:var(--white);margin-left:12px;'>♥ ME GUSTA ESTE OUTFIT</button>";
+    echo "</form>";
+}
+
     echo "<div class='result-actions' style='margin-top:32px;'>";
     echo "  <a href='index.php' class='btn-rehacer'>ARMAR OTRO OUTFIT</a>";
     echo "</div>";
@@ -371,4 +381,35 @@ function distanciaColor($hex1, $hex2) {
     $b2 = hexdec(substr($hex2, 4, 2));
 
     return sqrt(pow($r1-$r2, 2) + pow($g1-$g2, 2) + pow($b1-$b2, 2));
+}
+
+function guardarOutfitUsuario() {
+    if (!isset($_SESSION['nombre_usuario']) || !isset($_SESSION['outfit'])) return;
+
+    $outfit  = $_SESSION['outfit'];
+    $usuario = $_SESSION['nombre_usuario'];
+
+    // Extraer nombres por tipo
+    $remera   = '';
+    $pantalon = '';
+    $zapatos  = '';
+
+    foreach ($outfit as $prenda) {
+        $tipo   = $prenda['tipo']   ?? '';
+        $nombre = $prenda['nombre'] ?? '';
+        if ($tipo === 'remera'   || $tipo === 'vestido') $remera   = $nombre;
+        if ($tipo === 'pantalon')                        $pantalon = $nombre;
+        if ($tipo === 'zapatos')                         $zapatos  = $nombre;
+    }
+
+    $datos = [
+        'usuario'         => $usuario,
+        'prenda_remera'   => $remera,
+        'prenda_pantalon' => $pantalon,
+        'prenda_zapatos'  => $zapatos,
+        'estilo'          => $_SESSION['outfit_estilo'] ?? '',
+        'genero'          => $_SESSION['outfit_genero'] ?? '',
+    ];
+
+    supabaseInsert('outfits_guardados', $datos);
 }

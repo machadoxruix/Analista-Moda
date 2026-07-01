@@ -3,6 +3,13 @@ if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 
+// Procesar guardado de outfit
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guardar_outfit') {
+    include_once("funciones.php");
+    guardarOutfitUsuario();
+    $_SESSION['outfit_guardado'] = true; // Para mostrar confirmación
+}
+
 include("funciones.php");
 
 if (isset($_POST['nombre'])) {
@@ -36,6 +43,13 @@ if (isset($_POST['nombre'])) {
     </div>
 
     <main>
+        <?php if (!empty($_SESSION['outfit_guardado'])): ?>
+     <div style="text-align:center;margin-top:16px;font-family:var(--font-mono);
+                font-size:0.75rem;color:var(--neon);letter-spacing:0.1em;">
+        ✓ OUTFIT GUARDADO EN TU HISTORIAL
+      </div>
+      <?php unset($_SESSION['outfit_guardado']); ?>
+    <?php endif; ?>
         <?php generarOutfit(); ?>
     </main>
 
