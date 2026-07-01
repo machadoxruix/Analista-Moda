@@ -9,6 +9,13 @@ define('TABLE_USUARIOS', 'usuarios');
 
 define('DEBUG_MODE', false);
 
+// ============================================================
+//  CONFIGURACIÓN DE GROQ (cargada desde .env)
+// ============================================================
+$_env = file_exists(__DIR__ . '/.env') ? parse_ini_file(__DIR__ . '/.env') : [];
+define('GROQ_KEY',   $_env['GROQ_KEY']   ?? '');
+define('GROQ_MODEL', 'llama3-8b-8192');
+
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
@@ -77,16 +84,75 @@ function supabaseInsert($table, $data) {
 }
 
 // ============================================================
+//  GROQ — CONSULTA A LA IA
+// ============================================================
+function consultarGroq($prompt) {
+    if (!GROQ_KEY) {
+        debugLog("GROQ_KEY no configurada");
+        return null;
+    }
+
+    $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => json_encode([
+            'model'       => GROQ_MODEL,
+            'max_tokens'  => 150,
+            'temperature' => 0.3,
+            'messages'    => [
+                [
+                    'role'    => 'system',
+                    'content' => 'Sos un estilista de moda. Respondés ÚNICAMENTE con un JSON válido, sin texto adicional, sin explicaciones, sin bloques de código markdown.'
+                ],
+                [
+                    'role'    => 'user',
+                    'content' => $prompt
+                ]
+            ]
+        ]),
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . GROQ_KEY,
+            'Content-Type: application/json',
+        ],
+        CURLOPT_TIMEOUT => 15,
+    ]);
+
+    $response  = curl_exec($ch);
+    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlError || $httpCode !== 200) {
+        debugLog("Groq error: $curlError | HTTP: $httpCode | Resp: $response");
+        return null;
+    }
+
+    $data  = json_decode($response, true);
+    $texto = $data['choices'][0]['message']['content'] ?? '';
+
+    // Limpiar posibles bloques markdown que Groq a veces agrega
+    $texto = preg_replace('/```json|```/i', '', $texto);
+    $texto = trim($texto);
+
+    $parsed = json_decode($texto, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        debugLog("Groq JSON inválido: $texto");
+        return null;
+    }
+
+    return $parsed;
+}
+
+// ============================================================
 //  AUTH
 // ============================================================
 function verificarLogin($usuario, $contrasena) {
-    $query = '?usuario=eq.' . urlencode($usuario)
+    $query = '?usuario=eq.'    . urlencode($usuario)
            . '&contrasena=eq.' . urlencode($contrasena)
-           . '&select=usuario'
-           . '&limit=1';
+           . '&select=usuario&limit=1';
 
     $resultado = supabaseRequest('cuentas', $query);
-
 
     if ($resultado && count($resultado) > 0) {
         return $resultado[0];
@@ -94,6 +160,7 @@ function verificarLogin($usuario, $contrasena) {
 
     return null;
 }
+
 function crearCuenta($usuario, $contrasena) {
     $existe = supabaseRequest('cuentas', '?usuario=eq.' . urlencode($usuario) . '&select=id&limit=1');
     if ($existe && count($existe) > 0) return 'existe';
@@ -136,10 +203,10 @@ function generarOutfit() {
     $outfit = obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera, $color_pantalon, $talle);
 
     if ($outfit && count($outfit) > 0) {
-        $_SESSION['outfit']       = $outfit;
-        $_SESSION['outfit_clave'] = $clave_actual;
-        $_SESSION['outfit_estilo']    = $estilo;   // ← agregar
-        $_SESSION['outfit_genero']    = $genero;   // ← agregar
+        $_SESSION['outfit']        = $outfit;
+        $_SESSION['outfit_clave']  = $clave_actual;
+        $_SESSION['outfit_estilo'] = $estilo;
+        $_SESSION['outfit_genero'] = $genero;
         mostrarOutfit($outfit);
         $paleta = sanitizar($_POST['paleta'] ?? '');
         $pelo   = sanitizar($_POST['pelo']   ?? '');
@@ -151,34 +218,28 @@ function generarOutfit() {
 }
 
 // ============================================================
-//  ARMAR UN OUTFIT COMPLETO
+//  ARMAR UN OUTFIT COMPLETO (con IA de Groq)
 // ============================================================
 function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffffff', $color_pantalon = '#333333', $talle = '') {
-    $outfit = [];
 
+    // Lógica de vestido
     $tiene_vestido = false;
     if ($genero === 'femenino' && $estilo !== 'deportivo') {
         $query_vestido = '?genero=in.(femenino,unisex)'
             . '&estilo=eq.' . urlencode($estilo)
             . '&tamano=eq.' . urlencode($tamano)
             . '&tipo=eq.vestido'
-            . '&select=id,nombre,tipo,foto,hex&limit=100';
-
+            . '&select=id,nombre,tipo,foto,hex&limit=20';
         $vestidos = supabaseRequest(TABLE_PRENDAS, $query_vestido);
-        $vestidos = array_values(array_filter($vestidos ?? [], function($p) {
-            return !empty($p['foto']);
-        }));
+        $vestidos = array_values(array_filter($vestidos ?? [], function($p) { return !empty($p['foto']); }));
         $tiene_vestido = count($vestidos) > 0 && rand(0, 1) === 1;
     }
 
-    if ($tiene_vestido) {
-        $colores = ['vestido' => $color_remera, 'zapatos' => null];
-    } else {
-        $colores = ['remera' => $color_remera, 'pantalon' => $color_pantalon, 'zapatos' => null];
-    }
-    
+    $tipos = $tiene_vestido ? ['vestido', 'zapatos'] : ['remera', 'pantalon', 'zapatos'];
 
-    foreach ($colores as $tipo => $color_elegido) {
+    // Traer candidatas de Supabase para cada tipo
+    $candidatas = [];
+    foreach ($tipos as $tipo) {
         $intentos = [];
 
         if ($talle !== '') {
@@ -187,43 +248,116 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
                 . '&tamano=eq.' . urlencode($tamano)
                 . '&talle=eq.'  . urlencode($talle)
                 . '&tipo=eq.'   . urlencode($tipo)
-                . '&select=id,nombre,tipo,foto,hex&limit=100';
+                . '&select=id,nombre,tipo,foto,hex&limit=20';
         }
 
         $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
             . '&estilo=eq.' . urlencode($estilo)
             . '&tamano=eq.' . urlencode($tamano)
             . '&tipo=eq.'   . urlencode($tipo)
-            . '&select=id,nombre,tipo,foto,hex&limit=100';
+            . '&select=id,nombre,tipo,foto,hex&limit=20';
 
         $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
             . '&estilo=eq.' . urlencode($estilo)
             . '&tipo=eq.'   . urlencode($tipo)
-            . '&select=id,nombre,tipo,foto,hex&limit=100';
+            . '&select=id,nombre,tipo,foto,hex&limit=20';
 
         $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
             . '&tipo=eq.'   . urlencode($tipo)
-            . '&select=id,nombre,tipo,foto,hex&limit=100';
+            . '&select=id,nombre,tipo,foto,hex&limit=20';
 
-        $prendas = [];
         foreach ($intentos as $query) {
             $resultado = supabaseRequest(TABLE_PRENDAS, $query);
-            $conFoto   = array_values(array_filter($resultado ?? [], function($p) {
-                return !empty($p['foto']);
-            }));
-            if (count($conFoto) > 0) { $prendas = $conFoto; break; }
+            $conFoto   = array_values(array_filter($resultado ?? [], function($p) { return !empty($p['foto']); }));
+            if (count($conFoto) > 0) { $candidatas[$tipo] = $conFoto; break; }
         }
+    }
 
-        if (count($prendas) === 0) continue;
+    if (empty($candidatas)) return [];
 
-        // ✅ Verificar si alguna prenda tiene hex, no solo la primera
-        $prendas_con_hex = array_values(array_filter($prendas, function($p) {
-            return !empty($p['hex']);
-        }));
+    // Consultar historial del usuario si está logueado
+    $historial_texto = '';
+    if (isset($_SESSION['nombre_usuario'])) {
+        $hist = supabaseRequest('outfits_guardados',
+            '?usuario=eq.' . urlencode($_SESSION['nombre_usuario'])
+            . '&order=fecha.desc&limit=5'
+            . '&select=prenda_remera,prenda_pantalon,prenda_zapatos,estilo'
+        );
+        if ($hist && count($hist) > 0) {
+            $historial_texto = "\nHistorial de outfits que le gustaron al usuario:\n";
+            foreach ($hist as $h) {
+                $historial_texto .= "- " . ($h['prenda_remera'] ?? '—') . " + "
+                                        . ($h['prenda_pantalon'] ?? '—') . " + "
+                                        . ($h['prenda_zapatos']  ?? '—')
+                                        . " (" . ($h['estilo'] ?? '') . ")\n";
+            }
+        }
+    }
 
-        if ($color_elegido !== null && count($prendas_con_hex) > 0) {
-            $mejor    = null;
-            $min_dist = PHP_INT_MAX;
+    // Armar prompt para Groq
+    $prompt = "El usuario busca un outfit con estas preferencias:\n"
+        . "- Género: $genero\n"
+        . "- Estilo: $estilo\n"
+        . "- Corte: $tamano\n"
+        . "- Color superior deseado: $color_remera\n"
+        . "- Color inferior deseado: $color_pantalon\n"
+        . $historial_texto
+        . "\nPrendas disponibles:\n";
+
+    foreach ($candidatas as $tipo => $prendas) {
+        $prompt .= strtoupper($tipo) . "S disponibles:\n";
+        foreach ($prendas as $p) {
+            $prompt .= "  - id:{$p['id']} \"{$p['nombre']}\" hex:{$p['hex']}\n";
+        }
+    }
+
+    $tipos_ids = array_keys($candidatas);
+    $ejemplo   = '{' . implode(', ', array_map(function($t) { return "\"$t\": ID_NUMERO"; }, $tipos_ids)) . '}';
+    $prompt   .= "\nElegí UNA prenda de cada tipo considerando el color deseado (por hex), el estilo y el historial del usuario."
+              .  " Respondé SOLO con este JSON exacto, reemplazando ID_NUMERO por el id numérico elegido:\n$ejemplo";
+
+    // Consultar Groq
+    $eleccion = consultarGroq($prompt);
+
+    if (!$eleccion) {
+        // Fallback: distancia de color si Groq falla
+        return obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
+    }
+
+    // Construir outfit con los IDs elegidos por Groq
+    $outfit = [];
+    foreach ($eleccion as $tipo => $id_elegido) {
+        if (!isset($candidatas[$tipo])) continue;
+        foreach ($candidatas[$tipo] as $prenda) {
+            if ((int)$prenda['id'] === (int)$id_elegido) {
+                $outfit[] = $prenda;
+                break;
+            }
+        }
+    }
+
+    // Si Groq devolvió IDs inválidos, fallback
+    return count($outfit) > 0 ? $outfit : obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
+}
+
+// ============================================================
+//  FALLBACK: distancia de color si Groq falla
+// ============================================================
+function obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon) {
+    $colores = [
+        'remera'   => $color_remera,
+        'vestido'  => $color_remera,
+        'pantalon' => $color_pantalon,
+        'zapatos'  => null,
+    ];
+    $outfit = [];
+
+    foreach ($candidatas as $tipo => $prendas) {
+        $color_elegido   = $colores[$tipo] ?? null;
+        $prendas_con_hex = array_values(array_filter($prendas, function($p) { return !empty($p['hex']); }));
+
+        if ($color_elegido && count($prendas_con_hex) > 0) {
+            $mejor = null; $min_dist = PHP_INT_MAX;
             foreach ($prendas_con_hex as $prenda) {
                 $dist = distanciaColor($color_elegido, $prenda['hex']);
                 if ($dist < $min_dist) { $min_dist = $dist; $mejor = $prenda; }
@@ -243,12 +377,11 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 function mostrarOutfit($outfit) {
     $roles = [
         'remera'   => 'slot-top',
-        'vestido'  => 'slot-top',    // vestido ocupa el mismo slot que remera
+        'vestido'  => 'slot-top',
         'pantalon' => 'slot-bottom',
         'zapatos'  => 'slot-shoes',
     ];
 
-    // Construir array indexado por tipo
     $prendas_por_tipo = [];
     foreach ($outfit as $prenda) {
         $tipo = $prenda['tipo'] ?? '';
@@ -257,7 +390,6 @@ function mostrarOutfit($outfit) {
         }
     }
 
-    // Fallback: si las prendas no tienen campo tipo, usar orden de llegada
     if (empty($prendas_por_tipo)) {
         $keys = array_keys($roles);
         foreach (array_values($outfit) as $i => $prenda) {
@@ -267,14 +399,12 @@ function mostrarOutfit($outfit) {
     }
 
     echo "<div class='collage-outer'>";
-
     echo "<div class='collage-deco'>
         <span class='deco-line deco-line-h'></span>
         <span class='deco-line deco-line-v'></span>
         <span class='deco-tag'>LOOK OF THE DAY</span>
         <span class='deco-season'>SS 2026</span>
     </div>";
-
     echo "<div class='outfit-collage'>";
 
     $orden = ['remera', 'vestido', 'pantalon', 'zapatos'];
@@ -297,7 +427,6 @@ function mostrarOutfit($outfit) {
 
     echo "</div>";
 
-    // Strip inferior de nombres
     echo "<div class='collage-strip'>";
     $idx = 1;
     foreach ($orden as $tipo) {
@@ -310,19 +439,16 @@ function mostrarOutfit($outfit) {
         $idx++;
     }
     echo "</div>";
-
     echo "</div>";
-
-    // Solo mostrar si hay sesión activa
-if (isset($_SESSION['nombre_usuario'])) {
-    echo "<form method='POST' action='resultado.php' style='display:inline;'>";
-    echo "  <input type='hidden' name='accion' value='guardar_outfit'>";
-    echo "  <button type='submit' class='btn-rehacer' style='background:transparent;border:2px solid var(--neon);color:var(--white);margin-left:12px;'>♥ ME GUSTA ESTE OUTFIT</button>";
-    echo "</form>";
-}
 
     echo "<div class='result-actions' style='margin-top:32px;'>";
     echo "  <a href='index.php' class='btn-rehacer'>ARMAR OTRO OUTFIT</a>";
+    if (isset($_SESSION['nombre_usuario'])) {
+        echo "  <form method='POST' action='resultado.php' style='display:inline;'>";
+        echo "    <input type='hidden' name='accion' value='guardar_outfit'>";
+        echo "    <button type='submit' class='btn-rehacer' style='background:transparent;border:2px solid var(--neon);color:var(--white);margin-left:12px;'>♥ ME GUSTA ESTE OUTFIT</button>";
+        echo "  </form>";
+    }
     echo "</div>";
 }
 
@@ -350,6 +476,39 @@ function guardarPreferenciasUsuario($nombre, $genero, $estilo, $paleta = '', $pe
         'altura'          => $altura,
     ];
     supabaseInsert(TABLE_USUARIOS, $datos);
+}
+
+// ============================================================
+//  GUARDAR OUTFIT APROBADO POR EL USUARIO
+// ============================================================
+function guardarOutfitUsuario() {
+    if (!isset($_SESSION['nombre_usuario']) || !isset($_SESSION['outfit'])) return;
+
+    $outfit  = $_SESSION['outfit'];
+    $usuario = $_SESSION['nombre_usuario'];
+
+    $remera   = '';
+    $pantalon = '';
+    $zapatos  = '';
+
+    foreach ($outfit as $prenda) {
+        $tipo   = $prenda['tipo']   ?? '';
+        $nombre = $prenda['nombre'] ?? '';
+        if ($tipo === 'remera' || $tipo === 'vestido') $remera   = $nombre;
+        if ($tipo === 'pantalon')                      $pantalon = $nombre;
+        if ($tipo === 'zapatos')                       $zapatos  = $nombre;
+    }
+
+    $datos = [
+        'usuario'         => $usuario,
+        'prenda_remera'   => $remera,
+        'prenda_pantalon' => $pantalon,
+        'prenda_zapatos'  => $zapatos,
+        'estilo'          => $_SESSION['outfit_estilo'] ?? '',
+        'genero'          => $_SESSION['outfit_genero'] ?? '',
+    ];
+
+    supabaseInsert('outfits_guardados', $datos);
 }
 
 // ============================================================
@@ -381,35 +540,4 @@ function distanciaColor($hex1, $hex2) {
     $b2 = hexdec(substr($hex2, 4, 2));
 
     return sqrt(pow($r1-$r2, 2) + pow($g1-$g2, 2) + pow($b1-$b2, 2));
-}
-
-function guardarOutfitUsuario() {
-    if (!isset($_SESSION['nombre_usuario']) || !isset($_SESSION['outfit'])) return;
-
-    $outfit  = $_SESSION['outfit'];
-    $usuario = $_SESSION['nombre_usuario'];
-
-    // Extraer nombres por tipo
-    $remera   = '';
-    $pantalon = '';
-    $zapatos  = '';
-
-    foreach ($outfit as $prenda) {
-        $tipo   = $prenda['tipo']   ?? '';
-        $nombre = $prenda['nombre'] ?? '';
-        if ($tipo === 'remera'   || $tipo === 'vestido') $remera   = $nombre;
-        if ($tipo === 'pantalon')                        $pantalon = $nombre;
-        if ($tipo === 'zapatos')                         $zapatos  = $nombre;
-    }
-
-    $datos = [
-        'usuario'         => $usuario,
-        'prenda_remera'   => $remera,
-        'prenda_pantalon' => $pantalon,
-        'prenda_zapatos'  => $zapatos,
-        'estilo'          => $_SESSION['outfit_estilo'] ?? '',
-        'genero'          => $_SESSION['outfit_genero'] ?? '',
-    ];
-
-    supabaseInsert('outfits_guardados', $datos);
 }

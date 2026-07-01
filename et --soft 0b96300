@@ -1,0 +1,104 @@
+[33m2c139f9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m realiza cambios claves
+[33m86186e0[m realiza cambios clave
+[33m0b96300[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m arregla
+[33m28934d0[m realiza cambios cambiantes
+[33mf00288f[m Add files via upload
+[33mbc57427[m actualiza
+[33m35bdae0[m corregi
+[33m603fba3[m arregla
+[33m1c56269[m elimina codigo muerto
+[33m8b6aaf0[m actualiza
+[33m915873b[m actualiza
+[33mb310c45[m actualiza
+[33m80fdf81[m actualiza
+[33mfa980b6[m actualiza
+[33mf69c74e[m agrega
+[33m3ce06e0[m actualiza
+[33maa36224[m corregir
+[33me8cc52f[m corregi
+[33mc85103a[m corregir
+[33m868a9f7[m actualiza
+[33mc706977[m actualiza
+[33m7655a8d[m actualiza
+[33m5592864[m actualiza
+[33mfcbb0a5[m corregir
+[33m1f29071[m actualiza
+[33m2fba349[m actualiza
+[33m1641334[m elimina
+[33m64eb7a2[m realiza cambios
+[33mbdb236c[m actualiza
+[33md2ba39c[m regresa los cambios
+[33m8cc6311[m actualiza
+[33m0cb91a6[m agregar favicon
+[33mb9eebe3[m actualiza
+[33m0c5baf1[m actualiza
+[33m601b132[m Delete portada.php
+[33m51dfc50[m Refactor resultado.php for improved layout and styling
+[33mf0e936c[m Update
+[33m46e7ca6[m Update
+[33m34ff4c8[m Refactor CSS for dark mode and layout adjustments
+[33m13ac621[m Add files via upload
+[33m8a54d48[m reemplaza este codigo
+[33mb9c5f03[m realiza las modificaciones
+[33m0751ac9[m realiza los cambios
+[33m754069c[m lleva a cabo los cambios hechos
+[33me28fab4[m elimina esto
+[33m6af1c47[m cambialo
+[33meb530ce[m reemplaza la funcion obtenerOutfirCompleto
+[33mcc6a2be[m Add files via upload
+[33me3bd7a2[m cambialo
+[33m98c93f5[m reemplaza los OUTFIT AI por PILCHA IA
+[33mf302f78[m lleva a cabo
+[33m2198beb[m lleva a cabo cambios
+[33m44c562a[m cambia el nombre de la marca de "OUTFIT AI" a "PILCHA AI" en la página de inicio de sesión
+[33mb8117bd[m Add files via upload
+[33m9136b96[m elimina
+[33m252e4d6[m modifica
+[33m905997b[m realiza cambios
+[33mf01a5af[m corregi estos cambios
+[33m3d2a136[m modifica todo esto
+[33mec3afaf[m Add files via upload
+[33m34d6fec[m elimina este archivo
+[33me7be5d9[m Add files via upload
+[33m8bd23dc[m lleva a cabo el cambio
+[33m3e91a7d[m Add files via upload
+[33me72cb8a[m realiza los cambios
+[33m3df5549[m agrega las modificaciones
+[33m93896b0[m realiza los cambios aplicados
+[33md20a913[m lleva a cabo acciones pedidas
+[33mce84867[m Actualizar rutas de favicon en index.php, portada.php, portada0.php y resultado.php
+[33m8dd3069[m Actualizar rutas de favicon en index.php, portada.php, portada0.php y resultado.php
+[33m8a24fc3[m Merge branch 'main' of https://github.com/machadoxruix/Analista-Moda
+[33m3491f13[m Agregar favicon a las páginas index.php, portada.php, portada0.php y resultado.php
+[33mb970ad0[m Add files via upload
+[33mc3abbde[m Modificar la función generarOutfit para incluir colores de remera y pantalón, y agregar la función distanciaColor para calcular la cercanía de colores.
+[33m0ed1399[m Agregar verificación de outfit en la función generarOutfit y eliminar unset de outfit_clave en index.php
+[33m1b6e4ac[m Merge branch 'main' of https://github.com/machadoxruix/Analista-Moda
+[33mec9affa[m Actualizar enlace de cierre de sesión a 'logout.php' en la función mostrarOutfit
+[33m2d69728[m Add files via upload
+[33m279564f[m Modificar la función guardarPreferenciasUsuario para limpiar el valor de 'pelo' antes de guardarlo
+[33m49a2c2d[m Eliminar lógica de sesión en generarOutfit y simplificar obtenerOutfitCompleto para filtrar prendas con foto
+[33m8fd6a1c[m Refactor la función obtenerOutfitCompleto para usar funciones anónimas más legibles y mejorar la claridad del código
+[33mc579721[m Eliminar lógica redundante en la función generarOutfit y agregar filtrado de prendas con foto en obtenerOutfitCompleto
+[33me0002f3[m Agregar lógica para generar outfit y mostrar resultados de prendas en función de género, estilo y tamaño
+[33ma07d85d[m Agregar var_dump para depuración y limpiar variables de sesión en la función generarOutfit
+[33m23d0e67[m Eliminar variables de sesión 'outfit' y 'outfit_clave' al generar un nuevo outfit
+[33mc04de0a[m Activar modo debug para mostrar errores en pantalla durante el desarrollo
+[33md13738a[m Merge branch 'main' of https://github.com/machadoxruix/Analista-Moda
+[33m4657efc[m Eliminar variables de sesión 'outfit' y 'outfit_clave' al iniciar sesión
+[33m416af25[m Agregar función para crear cuenta y mejorar mensajes en la página de inicio de sesión
+[33m65d2761[m Add files via upload
+[33m8f7e962[m Eliminar imágenes de muestras: pantalon_gris.jpg, remera_blanca.jpg y remera_oversize_negra.jpg
+[33m2bd058e[m Fix image extensions JPG to jpg
+[33mef5ca0e[m Merge branch 'main' of https://github.com/machadoxruix/Analista-Moda
+[33m79d6ed1[m Actualizar configuración del contenedor para iniciar Apache automáticamente
+[33m9f55dd2[m Update page title from 'Pilchas AI' to 'Outfit AI'
+[33m0427c7f[m Change title from 'Outfit AI' to 'Pilchas AI'
+[33mfdbfe19[m Agregar script para iniciar automáticamente Apache en el contenedor de desarrollo
+[33m4c65097[m Add devcontainer configuration for Analista Moda
+[33m9aa767f[m Create devcontainer.json
+[33m31d58f5[m Actualizar permisos de archivos a 755 para mejorar la seguridad
+[33mfbe29cd[m Actualizar permisos de archivos a 755 para mejorar la seguridad
+[33m216678c[m Actualizar todos los cambios hechos hasta el momento
+[33m7ae5de1[m Actualizar cambios hechos en funciones.php y portada.php
+[33m1dd8815[m Add files via upload
