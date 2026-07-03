@@ -10,10 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guard
     guardarOutfitUsuario();
     $_SESSION['outfit_guardado'] = true;
 }
-
-if (isset($_POST['nombre'])) {
-    $_SESSION['nombre_usuario'] = $_POST['nombre'];
-}
 ?>
 <!DOCTYPE html>
 <html lang="es">

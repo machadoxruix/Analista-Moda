@@ -15,7 +15,7 @@ $usuario  = $_SESSION['nombre_usuario'];
 $query    = '?usuario=eq.' . urlencode($usuario)
           . '&order=fecha.desc'
           . '&limit=5'
-          . '&select=id,prenda_remera,prenda_pantalon,prenda_zapatos,estilo,genero,fecha';
+          . '&select=id,prenda_remera,prenda_pantalon,prenda_zapatos,foto_remera,foto_pantalon,foto_zapatos,estilo,genero,fecha';
 
 $historial = supabaseRequest('outfits_guardados', $query) ?? [];
 ?>
@@ -25,16 +25,14 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Historial — PILCHA IA</title>
-    <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="estilosresul.css">
     <style>
-        /* ── HISTORIAL ── */
         .historial-grid {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
             margin-top: 32px;
         }
 
@@ -42,14 +40,10 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 2px;
-            padding: 24px 28px;
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            align-items: center;
-            gap: 24px;
-            position: relative;
             overflow: hidden;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            transition: border-color 0.2s ease;
+            cursor: pointer;
         }
 
         .historial-card::before {
@@ -72,7 +66,15 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
 
         .historial-card:hover {
             border-color: var(--border-strong);
-            box-shadow: 0 0 0 1px rgba(104,2,27,0.18), 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        /* ── CABECERA ── */
+        .card-header {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 24px;
+            padding: 24px 28px;
         }
 
         .card-num {
@@ -111,7 +113,6 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
             font-size: 0.95rem;
             font-weight: 600;
             color: var(--white);
-            letter-spacing: 0.02em;
         }
 
         .prenda-nombre.vacio {
@@ -155,7 +156,74 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
             text-transform: uppercase;
         }
 
-        /* Estado vacío */
+        .expand-icon {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--white-muted);
+            margin-top: 8px;
+            letter-spacing: 0.1em;
+            transition: color 0.2s;
+        }
+
+        .historial-card:hover .expand-icon { color: var(--white); }
+        .historial-card.open .expand-icon  { color: var(--neon); }
+
+        /* ── PANEL DE IMÁGENES (expandible) ── */
+        .card-images {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-top: 1px solid var(--border);
+        }
+
+        .historial-card.open .card-images { display: grid; }
+
+        .card-img-slot {
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px 16px;
+            gap: 12px;
+        }
+
+        .card-img-slot img {
+            width: 100%;
+            max-width: 160px;
+            height: 160px;
+            object-fit: contain;
+            display: block;
+            mix-blend-mode: lighten;
+        }
+
+        .card-img-label {
+            font-family: var(--font-mono);
+            font-size: 0.55rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--white-muted);
+            text-align: center;
+        }
+
+        .no-foto {
+            width: 100%;
+            max-width: 160px;
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--white-muted);
+            font-family: var(--font-mono);
+            font-size: 0.6rem;
+            letter-spacing: 0.1em;
+        }
+
+        /* ── VACÍO ── */
         .historial-vacio {
             text-align: center;
             padding: 60px 20px;
@@ -181,12 +249,10 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
         }
 
         @media (max-width: 600px) {
-            .historial-card {
-                grid-template-columns: 1fr;
-                gap: 16px;
-            }
+            .card-header { grid-template-columns: 1fr; gap: 16px; }
             .card-num { font-size: 2rem; }
             .card-meta { align-items: flex-start; }
+            .card-images { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -215,44 +281,89 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
 
         <div class="historial-grid">
             <?php foreach ($historial as $i => $item):
-                $remera   = $item['prenda_remera']   ?? '';
-                $pantalon = $item['prenda_pantalon'] ?? '';
-                $zapatos  = $item['prenda_zapatos']  ?? '';
-                $estilo   = ucfirst($item['estilo']  ?? '');
-                $genero   = ucfirst($item['genero']  ?? '');
-                $fecha    = date('d/m/Y', strtotime($item['fecha'] ?? 'now'));
+                $remera        = $item['prenda_remera']   ?? '';
+                $pantalon      = $item['prenda_pantalon'] ?? '';
+                $zapatos       = $item['prenda_zapatos']  ?? '';
+                $foto_remera   = $item['foto_remera']     ?? '';
+                $foto_pantalon = $item['foto_pantalon']   ?? '';
+                $foto_zapatos  = $item['foto_zapatos']    ?? '';
+                $estilo        = ucfirst($item['estilo']  ?? '');
+                $genero        = ucfirst($item['genero']  ?? '');
+                $fecha         = date('d/m/Y', strtotime($item['fecha'] ?? 'now'));
+                $tiene_fotos   = $foto_remera || $foto_pantalon || $foto_zapatos;
             ?>
-            <div class="historial-card">
-                <span class="card-num">0<?php echo $i + 1; ?></span>
+            <div class="historial-card" onclick="toggleCard(this)">
+                <div class="card-header">
+                    <span class="card-num">0<?php echo $i + 1; ?></span>
 
-                <div class="card-prendas">
-                    <div class="prenda-item">
-                        <span class="prenda-tipo">Superior</span>
-                        <span class="prenda-nombre <?php echo $remera ? '' : 'vacio'; ?>">
-                            <?php echo $remera ? htmlspecialchars($remera) : '—'; ?>
-                        </span>
+                    <div class="card-prendas">
+                        <div class="prenda-item">
+                            <span class="prenda-tipo">Superior</span>
+                            <span class="prenda-nombre <?php echo $remera ? '' : 'vacio'; ?>">
+                                <?php echo $remera ? htmlspecialchars($remera) : '—'; ?>
+                            </span>
+                        </div>
+                        <?php if ($pantalon): ?>
+                        <div class="prenda-item">
+                            <span class="prenda-tipo">Inferior</span>
+                            <span class="prenda-nombre"><?php echo htmlspecialchars($pantalon); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <div class="prenda-item">
+                            <span class="prenda-tipo">Calzado</span>
+                            <span class="prenda-nombre <?php echo $zapatos ? '' : 'vacio'; ?>">
+                                <?php echo $zapatos ? htmlspecialchars($zapatos) : '—'; ?>
+                            </span>
+                        </div>
                     </div>
-                    <div class="prenda-item">
-                        <span class="prenda-tipo">Inferior</span>
-                        <span class="prenda-nombre <?php echo $pantalon ? '' : 'vacio'; ?>">
-                            <?php echo $pantalon ? htmlspecialchars($pantalon) : '—'; ?>
-                        </span>
-                    </div>
-                    <div class="prenda-item">
-                        <span class="prenda-tipo">Calzado</span>
-                        <span class="prenda-nombre <?php echo $zapatos ? '' : 'vacio'; ?>">
-                            <?php echo $zapatos ? htmlspecialchars($zapatos) : '—'; ?>
-                        </span>
+
+                    <div class="card-meta">
+                        <?php if ($estilo): ?>
+                            <span class="meta-estilo"><?php echo htmlspecialchars($estilo); ?></span>
+                        <?php endif; ?>
+                        <span class="meta-genero"><?php echo htmlspecialchars($genero); ?></span>
+                        <span class="meta-fecha"><?php echo $fecha; ?></span>
+                        <?php if ($tiene_fotos): ?>
+                            <span class="expand-icon">VER PRENDAS ↓</span>
+                        <?php endif; ?>
                     </div>
                 </div>
 
-                <div class="card-meta">
-                    <?php if ($estilo): ?>
-                        <span class="meta-estilo"><?php echo htmlspecialchars($estilo); ?></span>
-                    <?php endif; ?>
-                    <span class="meta-genero"><?php echo htmlspecialchars($genero); ?></span>
-                    <span class="meta-fecha"><?php echo $fecha; ?></span>
+                <?php if ($tiene_fotos): ?>
+                <div class="card-images">
+                    <!-- Superior -->
+                    <div class="card-img-slot">
+                        <?php if ($foto_remera): ?>
+                            <img src="<?php echo htmlspecialchars($foto_remera); ?>" alt="<?php echo htmlspecialchars($remera); ?>" loading="lazy">
+                        <?php else: ?>
+                            <div class="no-foto">SIN IMAGEN</div>
+                        <?php endif; ?>
+                        <span class="card-img-label"><?php echo htmlspecialchars($remera ?: '—'); ?></span>
+                    </div>
+
+                    <!-- Inferior -->
+                    <div class="card-img-slot">
+                        <?php if ($foto_pantalon): ?>
+                            <img src="<?php echo htmlspecialchars($foto_pantalon); ?>" alt="<?php echo htmlspecialchars($pantalon); ?>" loading="lazy">
+                        <?php elseif (!$pantalon): ?>
+                            <div class="no-foto">VESTIDO</div>
+                        <?php else: ?>
+                            <div class="no-foto">SIN IMAGEN</div>
+                        <?php endif; ?>
+                        <span class="card-img-label"><?php echo htmlspecialchars($pantalon ?: '—'); ?></span>
+                    </div>
+
+                    <!-- Calzado -->
+                    <div class="card-img-slot">
+                        <?php if ($foto_zapatos): ?>
+                            <img src="<?php echo htmlspecialchars($foto_zapatos); ?>" alt="<?php echo htmlspecialchars($zapatos); ?>" loading="lazy">
+                        <?php else: ?>
+                            <div class="no-foto">SIN IMAGEN</div>
+                        <?php endif; ?>
+                        <span class="card-img-label"><?php echo htmlspecialchars($zapatos ?: '—'); ?></span>
+                    </div>
                 </div>
+                <?php endif; ?>
             </div>
             <?php endforeach; ?>
         </div>
@@ -268,6 +379,16 @@ $historial = supabaseRequest('outfits_guardados', $query) ?? [];
     </footer>
 
 </div>
+
+<script>
+function toggleCard(card) {
+    const icon = card.querySelector('.expand-icon');
+    card.classList.toggle('open');
+    if (icon) {
+        icon.textContent = card.classList.contains('open') ? 'CERRAR ↑' : 'VER PRENDAS ↓';
+    }
+}
+</script>
 
 </body>
 </html>

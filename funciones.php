@@ -482,21 +482,36 @@ function guardarPreferenciasUsuario($nombre, $genero, $estilo, $paleta = '', $pe
 //  GUARDAR OUTFIT APROBADO POR EL USUARIO
 // ============================================================
 function guardarOutfitUsuario() {
+    // Solo usuarios logueados (no invitados)
     if (!isset($_SESSION['nombre_usuario']) || !isset($_SESSION['outfit'])) return;
 
-    $outfit  = $_SESSION['outfit'];
     $usuario = $_SESSION['nombre_usuario'];
+    $outfit  = $_SESSION['outfit'];
 
-    $remera   = '';
-    $pantalon = '';
-    $zapatos  = '';
+    $remera        = '';
+    $pantalon      = '';
+    $zapatos       = '';
+    $foto_remera   = '';
+    $foto_pantalon = '';
+    $foto_zapatos  = '';
 
     foreach ($outfit as $prenda) {
         $tipo   = $prenda['tipo']   ?? '';
         $nombre = $prenda['nombre'] ?? '';
-        if ($tipo === 'remera' || $tipo === 'vestido') $remera   = $nombre;
-        if ($tipo === 'pantalon')                      $pantalon = $nombre;
-        if ($tipo === 'zapatos')                       $zapatos  = $nombre;
+        $foto   = $prenda['foto']   ?? '';
+
+        if ($tipo === 'remera' || $tipo === 'vestido') {
+            $remera      = $nombre;
+            $foto_remera = $foto;
+        }
+        if ($tipo === 'pantalon') {
+            $pantalon      = $nombre;
+            $foto_pantalon = $foto;
+        }
+        if ($tipo === 'zapatos') {
+            $zapatos      = $nombre;
+            $foto_zapatos = $foto;
+        }
     }
 
     $datos = [
@@ -504,6 +519,9 @@ function guardarOutfitUsuario() {
         'prenda_remera'   => $remera,
         'prenda_pantalon' => $pantalon,
         'prenda_zapatos'  => $zapatos,
+        'foto_remera'     => $foto_remera,
+        'foto_pantalon'   => $foto_pantalon,
+        'foto_zapatos'    => $foto_zapatos,
         'estilo'          => $_SESSION['outfit_estilo'] ?? '',
         'genero'          => $_SESSION['outfit_genero'] ?? '',
     ];
