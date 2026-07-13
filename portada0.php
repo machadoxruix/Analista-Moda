@@ -133,7 +133,6 @@ $abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
 <nav class="nav">
   <a href="portada0.php" class="nav-brand">PILCHA<span> IA</span></a>
   <ul class="nav-center">
-    <li><a href="historial.php">Mi Historial</a></li>
   </ul>
   <div class="nav-right">
     <?php if (isset($_SESSION['nombre_usuario'])): ?>
