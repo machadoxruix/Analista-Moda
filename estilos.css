@@ -829,8 +829,8 @@ body::before {
 
     /* Option grid: 2 columnas mínimo */
     .option-grid {
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 6px;
     }
 
     .option-grid-2x2 {
@@ -854,14 +854,15 @@ body::before {
 
     /* Talle row */
     .talle-row {
-        gap: 6px;
-    }
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
 
-    .talle-row .opt-btn {
-        min-width: 48px;
-        padding: 12px 6px;
-        font-size: 0.7rem;
-    }
+.talle-row .opt-btn {
+    padding: 12px 6px;
+    font-size: 0.7rem;
+}
 
     /* Swatch selector — scroll táctil en mobile */
     .swatch-track-outer {
