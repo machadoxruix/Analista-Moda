@@ -108,6 +108,23 @@ $abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
         border-color: #800020;
         outline: none;
     }
+
+    #modalRegistro .modal-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.6rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    text-align: left !important;
+}
+#modalRegistro .modal-subtitle {
+    text-align: left !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.65rem !important;
+}
+#modalRegistro .modal-body {
+    text-align: left !important;
+    padding: 16px 24px 28px !important;
+}
 </style>
 </head>
 <body>

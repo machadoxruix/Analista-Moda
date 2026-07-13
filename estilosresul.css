@@ -776,4 +776,8 @@ body::before {
     .card-img-slot img {
         height: 130px;
     }
+
+    .strip-item {
+    width: 100%;
+    }
 }
