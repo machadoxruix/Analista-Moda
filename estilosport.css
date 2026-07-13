@@ -1199,3 +1199,21 @@ body::before {
     .slide-corner-tl,
     .slide-corner-br { display: none; }
 }
+
+.nav-btn-historial {
+    font-family: var(--font-mono);
+    font-size: 0.60rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--cream);
+    padding: 8px 16px;
+    border: 1px solid var(--bordo-light);
+    transition: all 0.28s var(--ease-out);
+}
+
+.nav-btn-historial:hover {
+    color: var(--white);
+    border-color: var(--neon);
+}
