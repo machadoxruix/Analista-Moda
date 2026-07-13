@@ -136,6 +136,9 @@ $abrir_registro = (!empty($error_registro)) ? 'true' : 'false';
     <li><a href="historial.php">Mi Historial</a></li>
   </ul>
   <div class="nav-right">
+    <?php if (isset($_SESSION['nombre_usuario'])): ?>
+        <a href="historial.php" class="nav-btn-start">MI HISTORIAL</a>
+    <?php endif; ?>
     <a href="index.php" class="nav-btn-start">COMENZAR</a>
     <button class="btn-user" id="btnUser" aria-label="Abrir panel de usuario">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
