@@ -478,7 +478,6 @@ body::before {
     display: block;
 }
 
-.swatch-circle.swatch-plain { }
 
 .swatch-item.active .swatch-circle {
   border-color: var(--neon);
@@ -762,4 +761,184 @@ body::before {
     grid-template-columns: 1fr 1fr;
     gap: 10px 24px;
     margin-bottom: 20px;
+}
+
+/* =============================================
+   RESPONSIVE — MOBILE FIRST
+   ============================================= */
+
+/* Tablets (≤768px) */
+@media (max-width: 768px) {
+    .wizard-shell {
+        padding: 72px 16px 40px;
+    }
+
+    .step-card {
+        padding: 28px 20px;
+        min-height: 280px;
+    }
+
+    .step-num {
+        font-size: 3.5rem;
+        top: 12px;
+        right: 16px;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 16px;
+        padding: 12px 14px;
+    }
+
+    .btn-generate {
+        font-size: 1.1rem;
+        padding: 14px 24px;
+    }
+}
+
+/* Phones (≤480px) */
+@media (max-width: 480px) {
+    .nav { padding: 0 16px; }
+    .nav-tagline { display: none; }
+
+    .wizard-shell {
+        padding: 68px 12px 32px;
+    }
+
+    .step-card {
+        padding: 24px 16px;
+        min-height: auto;
+    }
+
+    .step-heading {
+        font-size: clamp(1.4rem, 7vw, 2rem);
+        padding-right: 48px; /* evitar superposición con step-num */
+    }
+
+    .step-sub {
+        font-size: 0.58rem;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .step-num {
+        font-size: 2.8rem;
+        top: 10px;
+        right: 12px;
+    }
+
+    /* Option grid: 2 columnas mínimo */
+    .option-grid {
+        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+        gap: 6px;
+    }
+
+    .option-grid-2x2 {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .opt-btn {
+        padding: 14px 8px;
+        font-size: 0.68rem;
+    }
+
+    .opt-btn .opt-icon {
+        font-size: 1.1rem;
+    }
+
+    .opt-btn .fit-icon {
+        width: 32px;
+        height: 42px;
+    }
+
+    /* Talle row */
+    .talle-row {
+        gap: 6px;
+    }
+
+    .talle-row .opt-btn {
+        min-width: 48px;
+        padding: 12px 6px;
+        font-size: 0.7rem;
+    }
+
+    /* Swatch selector — scroll táctil en mobile */
+    .swatch-track-outer {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+    }
+
+    .swatch-track-outer::-webkit-scrollbar { display: none; }
+
+    .swatch-track {
+        width: auto;
+        touch-action: pan-x;
+    }
+
+    .swatch-circle {
+        width: 52px;
+        height: 52px;
+    }
+
+    .swatch-item {
+        flex: 0 0 64px;
+    }
+
+    /* Color cards — apilar en mobile */
+    .color-cards {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .color-preview-ring {
+        width: 60px;
+        height: 60px;
+    }
+
+    /* Summary grid — una columna en mobile chico */
+    .summary-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    /* Botones de navegación */
+    .step-nav {
+        margin-top: 20px;
+    }
+
+    .btn-back {
+        padding: 8px 14px;
+        font-size: 0.58rem;
+    }
+
+    .btn-next {
+        padding: 10px 24px;
+        font-size: 0.9rem;
+    }
+
+    .btn-generate {
+        font-size: 1rem;
+        padding: 14px 20px;
+        letter-spacing: 0.08em;
+    }
+
+    .optional-badge {
+        font-size: 0.5rem;
+        padding: 2px 8px;
+        margin-bottom: 12px;
+    }
+
+    .progress-wrap {
+        margin-bottom: 20px;
+    }
+
+    .step-dots { gap: 5px; }
+
+    .dot {
+        width: 3px;
+        height: 3px;
+    }
 }

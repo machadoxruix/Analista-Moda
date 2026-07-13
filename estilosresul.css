@@ -626,3 +626,154 @@ body::before {
 
     .deco-season { font-size: 3rem; }
 }
+/* =============================================
+   RESPONSIVE ADICIONAL — RESULTADO / HISTORIAL
+   ============================================= */
+
+/* Tablets (≤768px) */
+@media (max-width: 768px) {
+    .page {
+        padding: 72px 24px 48px;
+    }
+
+    .outfit-collage {
+        min-height: 440px;
+    }
+
+    .slot-top { top: 20px; left: 3%; width: 44%; }
+    .slot-top .collage-piece-inner { height: 240px; }
+
+    .slot-bottom { top: 50px; right: 2%; width: 42%; }
+    .slot-bottom .collage-piece-inner { height: 280px; }
+
+    .slot-shoes { bottom: 20px; width: 36%; }
+    .slot-shoes .collage-piece-inner { height: 150px; }
+
+    .result-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .btn-rehacer {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Historial cards */
+    .card-header {
+        grid-template-columns: auto 1fr;
+        gap: 16px;
+        padding: 18px 20px;
+    }
+
+    .card-meta {
+        grid-column: 2;
+        align-items: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: auto;
+    }
+}
+
+/* Phones (≤480px) */
+@media (max-width: 480px) {
+    .nav { padding: 0 16px; }
+    .nav-tagline { display: none; }
+
+    .page {
+        padding: 68px 12px 40px;
+    }
+
+    .result-header h1 {
+        font-size: clamp(1.8rem, 9vw, 3rem);
+    }
+
+    .result-header p {
+        font-size: 0.55rem;
+    }
+
+    /* Collage compacto en mobile */
+    .outfit-collage {
+        min-height: 360px;
+    }
+
+    .slot-top { top: 12px; left: 2%; width: 46%; }
+    .slot-top .collage-piece-inner { height: 190px; transform: rotate(-1.5deg); }
+
+    .slot-bottom { top: 30px; right: 1%; width: 44%; }
+    .slot-bottom .collage-piece-inner { height: 220px; transform: rotate(1deg); }
+
+    .slot-shoes { bottom: 12px; width: 42%; }
+    .slot-shoes .collage-piece-inner { height: 120px; transform: rotate(-0.8deg); }
+
+    .deco-season { font-size: 2.5rem; bottom: 60px; }
+    .deco-tag { font-size: 0.44rem; }
+
+    /* Strip de nombres */
+    .collage-strip {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .strip-item {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 10px 14px;
+        flex-direction: row;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .strip-item:last-child { border-bottom: none; }
+
+    .strip-num { font-size: 0.85rem; min-width: 24px; }
+    .strip-name { font-size: 0.58rem; }
+
+    /* Acciones */
+    .result-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .btn-rehacer {
+        width: 100%;
+        text-align: center;
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+
+    /* Error box */
+    .error-box {
+        padding: 16px 16px;
+    }
+
+    /* Historial */
+    .card-header {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 16px 16px;
+    }
+
+    .card-num { font-size: 2rem; }
+
+    .card-meta {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        min-width: auto;
+    }
+
+    .expand-icon { margin-top: 0; }
+
+    .card-images {
+        grid-template-columns: 1fr;
+    }
+
+    .card-img-slot { padding: 16px 12px; }
+
+    .card-img-slot img {
+        height: 130px;
+    }
+}
