@@ -319,6 +319,8 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     // Consultar Groq
     $eleccion = consultarGroq($prompt);
+    debugLog("Groq eligió: " . json_encode($eleccion)); // ← agregar esta línea
+    debugLog("Candidatas disponibles: " . json_encode(array_map(function($ps) { return array_column($ps, 'id'); }, $candidatas)));
 
     if (!$eleccion) {
         // Fallback: distancia de color si Groq falla
