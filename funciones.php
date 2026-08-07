@@ -81,12 +81,12 @@ function supabaseInsert($table, $data) {
     if ($httpCode < 200 || $httpCode >= 300) { debugLog("HTTP $httpCode en INSERT $table — Respuesta: $response"); return false; }
 
     return true;
+    debugLog("Groq respuesta: " . json_encode($eleccion));
 }
 
 // ============================================================
 //  GROQ — CONSULTA A LA IA
 // ============================================================
-debugLog("Groq respuesta: " . json_encode($eleccion));
 function consultarGroq($prompt) {
     if (!GROQ_KEY) {
         debugLog("GROQ_KEY no configurada");
