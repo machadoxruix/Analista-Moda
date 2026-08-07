@@ -81,7 +81,6 @@ function supabaseInsert($table, $data) {
     if ($httpCode < 200 || $httpCode >= 300) { debugLog("HTTP $httpCode en INSERT $table — Respuesta: $response"); return false; }
 
     return true;
-    debugLog("Groq respuesta: " . json_encode($eleccion));
 }
 
 // ============================================================
