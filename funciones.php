@@ -14,7 +14,7 @@ define('DEBUG_MODE', true);
 // ============================================================
 $_env = file_exists(__DIR__ . '/.env') ? parse_ini_file(__DIR__ . '/.env') : [];
 define('GROQ_KEY',   $_env['GROQ_KEY']   ?? '');
-define('GROQ_MODEL', 'llama3-8b-8192');
+define('GROQ_MODEL', 'llama-3.1-8b-instant');
 
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
