@@ -318,6 +318,14 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
               .  " Respondé SOLO con este JSON exacto, reemplazando ID_NUMERO por el id numérico elegido:\n$ejemplo";
 
     // Consultar Groq
+    debugLog("Color usuario - remera: $color_remera | pantalon: $color_pantalon");
+  debugLog("Hex candidatas remera: " . json_encode(array_map(function($p) 
+  { 
+    return ['id' => $p['id'], 'nombre' => $p['nombre'], 'hex' => $p['hex']]; 
+  }, $candidatas['remera'] ?? [])));
+debugLog("Hex candidatas pantalon: " . json_encode(array_map(function($p) { 
+    return ['id' => $p['id'], 'nombre' => $p['nombre'], 'hex' => $p['hex']]; 
+}, $candidatas['pantalon'] ?? [])));
     $eleccion = consultarGroq($prompt);
     debugLog("Groq eligió: " . json_encode($eleccion)); // ← agregar esta línea
     debugLog("Candidatas disponibles: " . json_encode(array_map(function($ps) { return array_column($ps, 'id'); }, $candidatas)));
