@@ -420,7 +420,8 @@ function mostrarOutfit($outfit) {
 
         echo "<div class='collage-piece {$slot}'>";
         echo "  <div class='collage-piece-inner'>";
-        echo "    <img src='{$foto}' alt='{$nombre}' loading='lazy'>";
+        $priority = ($tipo === 'remera' || $tipo === 'vestido') ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"';
+        echo "    <img src='{$foto}' alt='{$nombre}' loading='{$priority}'>";
         echo "  </div>";
         echo "  <span class='piece-label'>{$nombre}</span>";
         echo "  <span class='piece-type-tag'>{$label}</span>";
