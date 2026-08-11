@@ -352,8 +352,9 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
         if (($prenda['tipo'] ?? '') === 'chaqueta') {
             $color_neutro   = rand(0, 1) === 1 ? '#FFFFFF' : '#000000';
             $query_interior = '?genero=in.(' . urlencode($genero) . ',unisex)'
-                . '&tipo=eq.remera'
-                . '&select=id,nombre,tipo,foto,hex&limit=50';
+          . '&tipo=eq.remera'
+          . '&estilo=neq.deportivo'
+          . '&select=id,nombre,tipo,foto,hex&limit=50';
             $remeras = supabaseRequest(TABLE_PRENDAS, $query_interior);
             $remeras = array_values(array_filter($remeras ?? [], function($p) { return !empty($p['foto']); }));
 
@@ -411,13 +412,13 @@ function obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon) {
 // ============================================================
 function mostrarOutfit($outfit) {
     $roles = [
-        'remera'          => 'slot-top',
-        'chaqueta'        => 'slot-top',
-        'vestido'         => 'slot-top',
-        'remera_interior' => null,
-        'pantalon'        => 'slot-bottom',
-        'zapatos'         => 'slot-shoes',
-    ];
+    'remera'          => 'slot-top',
+    'chaqueta'        => 'slot-top',
+    'vestido'         => 'slot-top',
+    'remera_interior' => 'slot-interior',
+    'pantalon'        => 'slot-bottom',
+    'zapatos'         => 'slot-shoes',
+             ];
 
     $prendas_por_tipo = [];
     foreach ($outfit as $prenda) {
@@ -444,10 +445,9 @@ function mostrarOutfit($outfit) {
     </div>";
     echo "<div class='outfit-collage'>";
 
-    $orden = ['remera', 'chaqueta', 'vestido', 'pantalon', 'zapatos'];
+    $orden = ['remera', 'chaqueta', 'vestido', 'remera_interior', 'pantalon', 'zapatos'];
     foreach ($orden as $tipo) {
         if (!isset($prendas_por_tipo[$tipo])) continue;
-        if ($roles[$tipo] === null) continue;
         $prenda = $prendas_por_tipo[$tipo];
         $foto   = htmlspecialchars($prenda['foto']   ?? '');
         $nombre = htmlspecialchars($prenda['nombre'] ?? 'Prenda');
