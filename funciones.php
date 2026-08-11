@@ -296,14 +296,12 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
     }
 
     // Armar prompt para Groq
-    $prompt = "El usuario busca un outfit con estas preferencias:\n"
-        . "- Género: $genero\n"
-        . "- Estilo: $estilo\n"
-        . "- Corte: $tamano\n"
-        . "- Color superior deseado: $color_remera\n"
-        . "- Color inferior deseado: $color_pantalon\n"
-        . $historial_texto
-        . "\nPrendas disponibles:\n";
+    $prompt = "Sos un sistema de matching de colores. Tu ÚNICA tarea es elegir la prenda cuyo hex sea MÁS CERCANO al color pedido.\n\n"
+    . "REGLA ABSOLUTA: ignorá el nombre de la prenda y el estilo. Elegí SOLO por proximidad de color hex.\n\n"
+    . "Color superior pedido: $color_remera\n"
+    . "Color inferior pedido: $color_pantalon\n"
+    . $historial_texto
+    . "\nPrendas disponibles (elegí la de hex más cercano al color pedido):\n";
 
     foreach ($candidatas as $tipo => $prendas) {
         $prompt .= strtoupper($tipo) . "S disponibles:\n";
@@ -314,8 +312,8 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     $tipos_ids = array_keys($candidatas);
     $ejemplo   = '{' . implode(', ', array_map(function($t) { return "\"$t\": ID_NUMERO"; }, $tipos_ids)) . '}';
-    $prompt   .= "\nElegí UNA prenda de cada tipo considerando el color deseado (por hex), el estilo y el historial del usuario."
-              .  " Respondé SOLO con este JSON exacto, reemplazando ID_NUMERO por el id numérico elegido:\n$ejemplo";
+    $prompt .= "\nCalculá la distancia entre el color pedido y el hex de cada prenda. Elegí la de MENOR distancia."
+          . " Respondé SOLO con este JSON, sin texto extra:\n$ejemplo";
 
     // Consultar Groq
     debugLog("Color usuario - remera: $color_remera | pantalon: $color_pantalon");
