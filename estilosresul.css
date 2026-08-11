@@ -781,23 +781,22 @@ body::before {
     width: 100%;
     }
 }
-
-/* ── SLOT INTERIOR (remera bajo chaqueta) ── */
+/* SLOT INTERIOR */
 .slot-interior {
     top: 28px;
     left: 3%;
     width: 44%;
-    z-index: 2; /* detrás de la chaqueta que tiene z-index: 3 */
+    z-index: 2;
 }
 
 .slot-interior .collage-piece-inner {
     width: 100%;
-    height: 295px;
+    height: 280px;
     transform: rotate(-1.5deg);
     opacity: 0.88;
 }
 
 @media (max-width: 600px) {
     .slot-interior { width: 50%; left: 1%; }
-    .slot-interior .collage-piece-inner { height: 210px; }
+    .slot-interior .collage-piece-inner { height: 200px; }
 }

@@ -335,15 +335,33 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     // Construir outfit con los IDs elegidos por Groq
     $outfit = [];
-    foreach ($eleccion as $tipo => $id_elegido) {
-        if (!isset($candidatas[$tipo])) continue;
-        foreach ($candidatas[$tipo] as $prenda) {
+foreach ($candidatas as $tipo => $prendas) {
+    $id_elegido = $eleccion[$tipo] ?? null;
+
+    if ($id_elegido !== null) {
+        // Groq eligió un ID — buscarlo
+        foreach ($prendas as $prenda) {
             if ((int)$prenda['id'] === (int)$id_elegido) {
                 $outfit[] = $prenda;
                 break;
             }
         }
+    } else {
+        // Groq devolvió null para este tipo — usar distancia de color
+        $color_ref = ($tipo === 'pantalon') ? $color_pantalon : $color_remera;
+        $prendas_hex = array_values(array_filter($prendas, function($p) { return !empty($p['hex']); }));
+        if (count($prendas_hex) > 0) {
+            $mejor = null; $min_dist = PHP_INT_MAX;
+            foreach ($prendas_hex as $p) {
+                $dist = distanciaColor($color_ref, $p['hex']);
+                if ($dist < $min_dist) { $min_dist = $dist; $mejor = $p; }
+            }
+            if ($mejor) $outfit[] = $mejor;
+        } else {
+            $outfit[] = $prendas[array_rand($prendas)];
+        }
     }
+}
 
     if (count($outfit) === 0) {
         return obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
