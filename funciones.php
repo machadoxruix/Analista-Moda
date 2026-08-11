@@ -326,6 +326,8 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     // Consultar Groq
     $eleccion = consultarGroq($prompt);
+    debugLog("Groq eligió: " . json_encode($eleccion));
+    debugLog("Candidatas disponibles: " . json_encode(array_map(function($ps) { return array_column($ps, 'id'); }, $candidatas)));
 
     if (!$eleccion) {
         return obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
@@ -347,16 +349,35 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
         return obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
     }
 
-    // Si hay chaqueta, agregar remera interior neutra
+    // Si hay chaqueta, agregar remera interior según estilo
     foreach ($outfit as $prenda) {
         if (($prenda['tipo'] ?? '') === 'chaqueta') {
+            if (in_array($estilo, ['elegante', 'formal'])) {
+                $estilo_interior = $estilo;
+            } elseif ($estilo === 'deportivo') {
+                $estilo_interior = 'deportivo';
+            } else {
+                $estilo_interior = 'casual';
+            }
+
             $color_neutro   = rand(0, 1) === 1 ? '#FFFFFF' : '#000000';
             $query_interior = '?genero=in.(' . urlencode($genero) . ',unisex)'
-          . '&tipo=eq.remera'
-          . '&estilo=neq.deportivo'
-          . '&select=id,nombre,tipo,foto,hex&limit=50';
+                . '&tipo=eq.remera'
+                . '&estilo=eq.' . urlencode($estilo_interior)
+                . '&select=id,nombre,tipo,foto,hex&limit=50';
+
             $remeras = supabaseRequest(TABLE_PRENDAS, $query_interior);
             $remeras = array_values(array_filter($remeras ?? [], function($p) { return !empty($p['foto']); }));
+
+            // Si no hay del estilo exacto, buscar en casual como fallback
+            if (count($remeras) === 0) {
+                $query_interior = '?genero=in.(' . urlencode($genero) . ',unisex)'
+                    . '&tipo=eq.remera'
+                    . '&estilo=eq.casual'
+                    . '&select=id,nombre,tipo,foto,hex&limit=50';
+                $remeras = supabaseRequest(TABLE_PRENDAS, $query_interior);
+                $remeras = array_values(array_filter($remeras ?? [], function($p) { return !empty($p['foto']); }));
+            }
 
             if (count($remeras) > 0) {
                 $mejor = null; $min_dist = PHP_INT_MAX;
