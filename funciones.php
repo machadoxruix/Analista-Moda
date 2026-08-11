@@ -238,9 +238,18 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     $tipos = $tiene_vestido ? ['vestido', 'zapatos'] : ['remera', 'pantalon', 'zapatos'];
 
+    // Filtros por tipo — remera incluye chaqueta
+    $tipo_filtros = [
+        'remera'   => 'in.(remera,chaqueta)',
+        'pantalon' => 'eq.pantalon',
+        'zapatos'  => 'eq.zapatos',
+        'vestido'  => 'eq.vestido',
+    ];
+
     // Traer candidatas de Supabase para cada tipo
     $candidatas = [];
     foreach ($tipos as $tipo) {
+        $filtro_tipo = $tipo_filtros[$tipo] ?? 'eq.' . urlencode($tipo);
         $intentos = [];
 
         if ($talle !== '') {
@@ -248,23 +257,23 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
                 . '&estilo=eq.' . urlencode($estilo)
                 . '&tamano=eq.' . urlencode($tamano)
                 . '&talle=eq.'  . urlencode($talle)
-                . '&tipo=eq.'   . urlencode($tipo)
+                . '&tipo='      . $filtro_tipo
                 . '&select=id,nombre,tipo,foto,hex&limit=20';
         }
 
         $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
             . '&estilo=eq.' . urlencode($estilo)
             . '&tamano=eq.' . urlencode($tamano)
-            . '&tipo=eq.'   . urlencode($tipo)
+            . '&tipo='      . $filtro_tipo
             . '&select=id,nombre,tipo,foto,hex&limit=20';
 
         $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
             . '&estilo=eq.' . urlencode($estilo)
-            . '&tipo=eq.'   . urlencode($tipo)
+            . '&tipo='      . $filtro_tipo
             . '&select=id,nombre,tipo,foto,hex&limit=20';
 
         $intentos[] = '?genero=in.(' . urlencode($genero) . ',unisex)'
-            . '&tipo=eq.'   . urlencode($tipo)
+            . '&tipo='      . $filtro_tipo
             . '&select=id,nombre,tipo,foto,hex&limit=20';
 
         foreach ($intentos as $query) {
@@ -297,11 +306,11 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     // Armar prompt para Groq
     $prompt = "Sos un sistema de matching de colores. Tu ÚNICA tarea es elegir la prenda cuyo hex sea MÁS CERCANO al color pedido.\n\n"
-    . "REGLA ABSOLUTA: ignorá el nombre de la prenda y el estilo. Elegí SOLO por proximidad de color hex.\n\n"
-    . "Color superior pedido: $color_remera\n"
-    . "Color inferior pedido: $color_pantalon\n"
-    . $historial_texto
-    . "\nPrendas disponibles (elegí la de hex más cercano al color pedido):\n";
+        . "REGLA ABSOLUTA: ignorá el nombre de la prenda y el estilo. Elegí SOLO por proximidad de color hex.\n\n"
+        . "Color superior pedido: $color_remera\n"
+        . "Color inferior pedido: $color_pantalon\n"
+        . $historial_texto
+        . "\nPrendas disponibles (elegí la de hex más cercano al color pedido):\n";
 
     foreach ($candidatas as $tipo => $prendas) {
         $prompt .= strtoupper($tipo) . "S disponibles:\n";
@@ -312,24 +321,13 @@ function obtenerOutfitCompleto($genero, $estilo, $tamano, $color_remera = '#ffff
 
     $tipos_ids = array_keys($candidatas);
     $ejemplo   = '{' . implode(', ', array_map(function($t) { return "\"$t\": ID_NUMERO"; }, $tipos_ids)) . '}';
-    $prompt .= "\nCalculá la distancia entre el color pedido y el hex de cada prenda. Elegí la de MENOR distancia."
-          . " Respondé SOLO con este JSON, sin texto extra:\n$ejemplo";
+    $prompt   .= "\nCalculá la distancia entre el color pedido y el hex de cada prenda. Elegí la de MENOR distancia."
+              .  " Respondé SOLO con este JSON, sin texto extra:\n$ejemplo";
 
     // Consultar Groq
-    debugLog("Color usuario - remera: $color_remera | pantalon: $color_pantalon");
-  debugLog("Hex candidatas remera: " . json_encode(array_map(function($p) 
-  { 
-    return ['id' => $p['id'], 'nombre' => $p['nombre'], 'hex' => $p['hex']]; 
-  }, $candidatas['remera'] ?? [])));
-debugLog("Hex candidatas pantalon: " . json_encode(array_map(function($p) { 
-    return ['id' => $p['id'], 'nombre' => $p['nombre'], 'hex' => $p['hex']]; 
-}, $candidatas['pantalon'] ?? [])));
     $eleccion = consultarGroq($prompt);
-    debugLog("Groq eligió: " . json_encode($eleccion)); // ← agregar esta línea
-    debugLog("Candidatas disponibles: " . json_encode(array_map(function($ps) { return array_column($ps, 'id'); }, $candidatas)));
 
     if (!$eleccion) {
-        // Fallback: distancia de color si Groq falla
         return obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
     }
 
@@ -345,8 +343,36 @@ debugLog("Hex candidatas pantalon: " . json_encode(array_map(function($p) {
         }
     }
 
-    // Si Groq devolvió IDs inválidos, fallback
-    return count($outfit) > 0 ? $outfit : obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
+    if (count($outfit) === 0) {
+        return obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon);
+    }
+
+    // Si hay chaqueta, agregar remera interior neutra
+    foreach ($outfit as $prenda) {
+        if (($prenda['tipo'] ?? '') === 'chaqueta') {
+            $color_neutro   = rand(0, 1) === 1 ? '#FFFFFF' : '#000000';
+            $query_interior = '?genero=in.(' . urlencode($genero) . ',unisex)'
+                . '&tipo=eq.remera'
+                . '&select=id,nombre,tipo,foto,hex&limit=50';
+            $remeras = supabaseRequest(TABLE_PRENDAS, $query_interior);
+            $remeras = array_values(array_filter($remeras ?? [], function($p) { return !empty($p['foto']); }));
+
+            if (count($remeras) > 0) {
+                $mejor = null; $min_dist = PHP_INT_MAX;
+                foreach ($remeras as $r) {
+                    $dist = distanciaColor($color_neutro, $r['hex'] ?? '#000000');
+                    if ($dist < $min_dist) { $min_dist = $dist; $mejor = $r; }
+                }
+                if ($mejor) {
+                    $mejor['tipo'] = 'remera_interior';
+                    $outfit[] = $mejor;
+                }
+            }
+            break;
+        }
+    }
+
+    return $outfit;
 }
 
 // ============================================================
@@ -385,16 +411,18 @@ function obtenerOutfitFallback($candidatas, $color_remera, $color_pantalon) {
 // ============================================================
 function mostrarOutfit($outfit) {
     $roles = [
-        'remera'   => 'slot-top',
-        'vestido'  => 'slot-top',
-        'pantalon' => 'slot-bottom',
-        'zapatos'  => 'slot-shoes',
+        'remera'          => 'slot-top',
+        'chaqueta'        => 'slot-top',
+        'vestido'         => 'slot-top',
+        'remera_interior' => null,
+        'pantalon'        => 'slot-bottom',
+        'zapatos'         => 'slot-shoes',
     ];
 
     $prendas_por_tipo = [];
     foreach ($outfit as $prenda) {
         $tipo = $prenda['tipo'] ?? '';
-        if (isset($roles[$tipo])) {
+        if (array_key_exists($tipo, $roles)) {
             $prendas_por_tipo[$tipo] = $prenda;
         }
     }
@@ -416,9 +444,10 @@ function mostrarOutfit($outfit) {
     </div>";
     echo "<div class='outfit-collage'>";
 
-    $orden = ['remera', 'vestido', 'pantalon', 'zapatos'];
+    $orden = ['remera', 'chaqueta', 'vestido', 'pantalon', 'zapatos'];
     foreach ($orden as $tipo) {
         if (!isset($prendas_por_tipo[$tipo])) continue;
+        if ($roles[$tipo] === null) continue;
         $prenda = $prendas_por_tipo[$tipo];
         $foto   = htmlspecialchars($prenda['foto']   ?? '');
         $nombre = htmlspecialchars($prenda['nombre'] ?? 'Prenda');
@@ -427,8 +456,8 @@ function mostrarOutfit($outfit) {
 
         echo "<div class='collage-piece {$slot}'>";
         echo "  <div class='collage-piece-inner'>";
-        $priority = ($tipo === 'remera' || $tipo === 'vestido') ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"';
-        echo "    <img src='{$foto}' alt='{$nombre}' loading='{$priority}'>";
+        $priority = ($tipo === 'remera' || $tipo === 'chaqueta' || $tipo === 'vestido') ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"';
+        echo "    <img src='{$foto}' alt='{$nombre}' {$priority}>";
         echo "  </div>";
         echo "  <span class='piece-label'>{$nombre}</span>";
         echo "  <span class='piece-type-tag'>{$label}</span>";
@@ -437,16 +466,18 @@ function mostrarOutfit($outfit) {
 
     echo "</div>";
 
+    // Strip con remera interior incluida
     echo "<div class='collage-strip'>";
+    $orden_strip = ['remera', 'chaqueta', 'vestido', 'remera_interior', 'pantalon', 'zapatos'];
     $idx = 1;
-    foreach ($orden as $tipo) {
+    foreach ($orden_strip as $tipo) {
         if (!isset($prendas_por_tipo[$tipo])) continue;
         $nombre = htmlspecialchars($prendas_por_tipo[$tipo]['nombre'] ?? '');
+        $num    = $tipo === 'remera_interior' ? 'INT' : '0' . $idx++;
         echo "<div class='strip-item'>";
-        echo "  <span class='strip-num'>0{$idx}</span>";
+        echo "  <span class='strip-num'>{$num}</span>";
         echo "  <span class='strip-name'>{$nombre}</span>";
         echo "</div>";
-        $idx++;
     }
     echo "</div>";
     echo "</div>";
