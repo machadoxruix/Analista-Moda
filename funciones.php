@@ -100,8 +100,8 @@ function generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto 
 
     if (empty(trim($descripcion))) return null;
 
-    $prompt = "Sos un estilista de moda argentino. Describí en 2-3 oraciones cortas y naturales el outfit recomendado, "
-            . "destacando qué lo hace interesante y cómo combina. Usá un tono cercano y moderno, sin ser exagerado.\n\n"
+    $prompt = "Sos un estilista de moda argentino. Describí en UNA oración corta y directa el outfit recomendado, "
+            . "destacando qué lo hace especial. Rango de 55 a 65 palabras. Sin rodeos.\n\n"
             . "Estilo del outfit: $estilo\n"
             . "Género: $genero\n"
             . "Prendas:\n$descripcion";
@@ -117,7 +117,7 @@ function generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto 
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode([
             'model'       => GROQ_MODEL,
-            'max_tokens'  => 200,
+            'max_tokens'  => 100,
             'temperature' => 0.7,
             'messages'    => [
                 [
@@ -501,7 +501,7 @@ function mostrarOutfit($outfit) {
         '>✦ ANÁLISIS DE ESTILISTA</p>";
         echo "<p style='
             font-family: var(--font-body);
-            font-size: 0.95rem;
+            font-size: 1rem;
             color: var(--white-dim);
             line-height: 1.6;
             font-weight: 400;
