@@ -498,7 +498,7 @@ function mostrarOutfit($outfit) {
             text-transform: uppercase;
             color: var(--neon);
             margin-bottom: 10px;
-        '>✦ ANÁLISIS DE ESTILISTA</p>";
+        '><strong>✦ ANÁLISIS DE ESTILISTA</strong></p>";
         echo "<p style='
             font-family: var(--font-body);
             font-size: 1rem;
