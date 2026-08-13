@@ -493,12 +493,12 @@ function mostrarOutfit($outfit) {
         echo "<p style='
             font-family: var(--font-mono);
             font-size: 0.65rem;
-            font-weight: 700;
+            font-weight: bold;
             letter-spacing: 0.18em;
             text-transform: uppercase;
             color: var(--neon);
             margin-bottom: 10px;
-        '><strong>✦ ANÁLISIS DE ESTILISTA</strong></p>";
+        '>✦ ANÁLISIS DE ESTILISTA</p>";
         echo "<p style='
             font-family: var(--font-body);
             font-size: 1rem;
