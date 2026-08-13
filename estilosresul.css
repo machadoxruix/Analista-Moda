@@ -783,20 +783,29 @@ body::before {
 }
 /* SLOT INTERIOR */
 .slot-interior {
-    top: 28px;
-    left: 3%;
-    width: 44%;
+    bottom: 60px;
+    left: -2%;
+    width: 36%;
     z-index: 2;
 }
 
 .slot-interior .collage-piece-inner {
     width: 100%;
-    height: 280px;
-    transform: rotate(-1.5deg);
-    opacity: 0.88;
+    height: 220px;
+    transform: rotate(-3deg);
+    opacity: 0.85;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
 }
 
-@media (max-width: 600px) {
-    .slot-interior { width: 50%; left: 1%; }
-    .slot-interior .collage-piece-inner { height: 200px; }
+@media (max-width: 768px) {
+    .slot-interior { bottom: 40px; left: -1%; width: 40%; }
+    .slot-interior .collage-piece-inner { height: 180px; }
+}
+
+@media (max-width: 480px) {
+    .slot-interior { bottom: 20px; left: 0%; width: 44%; }
+    .slot-interior .collage-piece-inner { height: 140px; }
+}
+.slot-bottom {
+    z-index: 1;
 }
