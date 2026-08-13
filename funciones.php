@@ -7,7 +7,7 @@ define('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmF
 define('TABLE_PRENDAS',  'prendas');
 define('TABLE_USUARIOS', 'usuarios');
 
-define('DEBUG_MODE', true);
+define('DEBUG_MODE', false);
 
 // ============================================================
 //  CONFIGURACIÓN DE GROQ (cargada desde .env)
@@ -176,8 +176,15 @@ function crearCuenta($usuario, $contrasena) {
 //  FUNCIÓN PRINCIPAL: GENERAR OUTFIT
 // ============================================================
 function generarOutfit() {
-    unset($_SESSION['outfit'], $_SESSION['outfit_clave']);
-    // Recarga sin POST: mostrar outfit en sesión si existe
+    // Si viene del botón guardar, mostrar el outfit de sesión directamente
+    if (($_POST['accion'] ?? '') === 'guardar_outfit') {
+        if (isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
+            mostrarOutfit($_SESSION['outfit']);
+        }
+        return;
+    }
+
+    // Recarga sin genero: mostrar outfit de sesión si existe
     if ((!isset($_POST['genero']) || $_POST['genero'] === '') && isset($_SESSION['outfit']) && !empty($_SESSION['outfit'])) {
         mostrarOutfit($_SESSION['outfit']);
         return;
