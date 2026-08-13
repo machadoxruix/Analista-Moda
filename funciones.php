@@ -570,11 +570,10 @@ function guardarPreferenciasUsuario($nombre, $genero, $estilo, $paleta = '', $pe
 //  GUARDAR OUTFIT APROBADO POR EL USUARIO
 // ============================================================
 function guardarOutfitUsuario() {
-    // Solo usuarios logueados (no invitados)
     if (!isset($_SESSION['nombre_usuario']) || !isset($_SESSION['outfit'])) return;
 
-    $usuario = $_SESSION['nombre_usuario'];
     $outfit  = $_SESSION['outfit'];
+    $usuario = $_SESSION['nombre_usuario'];
 
     $remera        = '';
     $pantalon      = '';
@@ -588,10 +587,12 @@ function guardarOutfitUsuario() {
         $nombre = $prenda['nombre'] ?? '';
         $foto   = $prenda['foto']   ?? '';
 
-        if ($tipo === 'remera' || $tipo === 'vestido') {
+        // Superior: remera, vestido o chaqueta
+        if (in_array($tipo, ['remera', 'vestido', 'chaqueta'])) {
             $remera      = $nombre;
             $foto_remera = $foto;
         }
+        // Ignorar remera_interior — es solo visual
         if ($tipo === 'pantalon') {
             $pantalon      = $nombre;
             $foto_pantalon = $foto;
