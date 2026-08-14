@@ -577,6 +577,7 @@ body::before {
 
 .strip-item {
     flex: 1;
+    min-width: 0;        /* ← evita que el contenido desborde */
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -584,8 +585,8 @@ body::before {
     border-right: 1px solid var(--border);
     background: var(--bg-card);
     transition: background 0.2s ease;
+    overflow: hidden;    /* ← corta el texto largo */
 }
-
 .strip-item:last-child { border-right: none; }
 
 .strip-item:hover { background: var(--surface); }
@@ -810,4 +811,11 @@ body::before {
 }
 .slot-bottom {
     z-index: 1;
+}
+.slot-interior:hover {
+    z-index: 15;
+}
+.slot-interior:hover .collage-piece-inner {
+    transform: rotate(0deg) scale(1.04) !important;
+    filter: drop-shadow(0 16px 40px rgba(104,2,27,0.3));
 }

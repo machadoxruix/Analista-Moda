@@ -425,7 +425,7 @@ function mostrarOutfit($outfit) {
         $foto   = htmlspecialchars($prenda['foto']   ?? '');
         $nombre = htmlspecialchars($prenda['nombre'] ?? 'Prenda');
         $slot   = $roles[$tipo];
-        $label  = ucfirst($tipo);
+        $label = $labels[$tipo] ?? ucfirst($tipo);
 
         echo "<div class='collage-piece {$slot}'>";
         echo "  <div class='collage-piece-inner'>";
@@ -479,8 +479,14 @@ function mostrarOutfit($outfit) {
         }
     }
 
+    // Comentario cacheado en sesión para que no cambie al recargar
+    if (!isset($_SESSION['outfit_comentario']) || $_SESSION['outfit_comentario_clave'] !== $_SESSION['outfit_clave']) {
     $comentario = generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto);
-
+    $_SESSION['outfit_comentario']       = $comentario;
+    $_SESSION['outfit_comentario_clave'] = $_SESSION['outfit_clave'];
+     }   else {
+    $comentario = $_SESSION['outfit_comentario'];
+              }
     if ($comentario) {
         echo "<div style='
             margin-top: 24px;
@@ -491,13 +497,13 @@ function mostrarOutfit($outfit) {
             border-radius: 2px;
         '>";
         echo "<p style='
-            font-family: var(--font-mono);
-            font-size: 0.65rem;
-            font-weight: bold;
-            letter-spacing: 0.18em;
-            text-transform: uppercase;
-            color: var(--neon);
-            margin-bottom: 10px;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--white);
+    margin-bottom: 10px;
         '>✦ ANÁLISIS DE ESTILISTA</p>";
         echo "<p style='
             font-family: var(--font-body);
