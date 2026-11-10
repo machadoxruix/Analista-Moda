@@ -117,7 +117,7 @@ function generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto 
         CURLOPT_POST           => true,
         CURLOPT_POSTFIELDS     => json_encode([
             'model'       => GROQ_MODEL,
-            'max_tokens'  => 100,
+            'max_completion_tokens'  => 100,
             'temperature' => 0.7,
             'messages'    => [
                 [
