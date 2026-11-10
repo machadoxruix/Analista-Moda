@@ -12,8 +12,45 @@ define('DEBUG_MODE', true);
 // ============================================================
 //  CONFIGURACIÓN DE GROQ (cargada desde .env)
 // ============================================================
-$_env = file_exists(__DIR__ . '/.env') ? parse_ini_file(__DIR__ . '/.env') : [];
-define('GROQ_KEY',   $_env['GROQ_KEY']   ?? '');
+// Busca GROQ_KEY primero en las variables de entorno y después en .env.
+// Se revisa la carpeta de este archivo y hasta tres carpetas superiores,
+// por si funciones.php está dentro de una subcarpeta del proyecto.
+function cargarGroqKey() {
+    $clave = getenv('GROQ_KEY');
+    if (is_string($clave) && trim($clave) !== '') {
+        return trim($clave, " \t\n\r\0\x0B\"'");
+    }
+
+    if (!empty($_ENV['GROQ_KEY'])) {
+        return trim((string) $_ENV['GROQ_KEY'], " \t\n\r\0\x0B\"'");
+    }
+
+    if (!empty($_SERVER['GROQ_KEY'])) {
+        return trim((string) $_SERVER['GROQ_KEY'], " \t\n\r\0\x0B\"'");
+    }
+
+    $directorio = __DIR__;
+    for ($i = 0; $i <= 3; $i++) {
+        $rutaEnv = $directorio . DIRECTORY_SEPARATOR . '.env';
+
+        if (is_file($rutaEnv) && is_readable($rutaEnv)) {
+            $variables = parse_ini_file($rutaEnv, false, INI_SCANNER_RAW);
+            if (is_array($variables) && !empty($variables['GROQ_KEY'])) {
+                return trim((string) $variables['GROQ_KEY'], " \t\n\r\0\x0B\"'");
+            }
+        }
+
+        $directorioAnterior = dirname($directorio);
+        if ($directorioAnterior === $directorio) {
+            break;
+        }
+        $directorio = $directorioAnterior;
+    }
+
+    return '';
+}
+
+define('GROQ_KEY', cargarGroqKey());
 define('GROQ_MODEL', 'openai/gpt-oss-20b');
 
 if (session_status() == PHP_SESSION_NONE) {
@@ -87,9 +124,12 @@ function supabaseInsert($table, $data) {
 //  GROQ — COMENTARIO DE ESTILISTA (texto libre, no JSON)
 // ============================================================
 function generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto = '') {
-    if (!GROQ_KEY) return null;
+    if (!GROQ_KEY) {
+        debugLog("No se encontró GROQ_KEY. Revisá que .env esté en la carpeta del proyecto o en una carpeta superior y que contenga GROQ_KEY=...");
+        return null;
+    }
 
-    // Armar descripción del outfit
+    // Armar descripción del outfit.
     $descripcion = '';
     foreach ($outfit as $prenda) {
         $tipo   = $prenda['tipo']   ?? '';
@@ -98,10 +138,12 @@ function generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto 
         $descripcion .= "- $nombre ($tipo)\n";
     }
 
-    if (empty(trim($descripcion))) return null;
+    if (empty(trim($descripcion))) {
+        debugLog("No se pudo generar el comentario: el outfit no contiene prendas para describir.");
+        return null;
+    }
 
-    $prompt = "Sos un estilista de moda argentino. Describí en UNA oración corta y directa el outfit recomendado, "
-            . "destacando qué lo hace especial. Rango de 55 a 65 palabras. Sin rodeos.\n\n"
+    $prompt = "Sos un estilista de moda argentino. Respondé solo con el comentario, sin títulos, listas ni comillas. Describí en UNA oración el outfit recomendado, destacando qué lo hace especial y cómo combinan las prendas. Usá entre 55 y 65 palabras, sin exagerar ni dar rodeos.\n\n"
             . "Estilo del outfit: $estilo\n"
             . "Género: $genero\n"
             . "Prendas:\n$descripcion";
@@ -111,46 +153,85 @@ function generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto 
                  . "Si corresponde, mencioná brevemente que el outfit va en línea con sus gustos anteriores.";
     }
 
-    $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode([
-            'model'       => GROQ_MODEL,
-            'max_completion_tokens'  => 100,
-            'temperature' => 0.7,
-            'messages'    => [
-                [
-                    'role'    => 'system',
-                    'content' => 'Sos un estilista de moda. Respondés solo con el comentario, sin títulos, sin listas, sin comillas.'
-                ],
-                [
-                    'role'    => 'user',
-                    'content' => $prompt
-                ]
+    // GPT-OSS usa tokens de razonamiento; se deja un margen suficiente para
+    // que pueda completar el comentario y se solicita un esfuerzo bajo.
+    $datosSolicitud = [
+        'model'                  => GROQ_MODEL,
+        'max_completion_tokens'  => 400,
+        'temperature'            => 0.6,
+        'reasoning_effort'       => 'low',
+        'include_reasoning'      => false,
+        'messages'               => [
+            [
+                'role'    => 'user',
+                'content' => $prompt
             ]
-        ]),
-        CURLOPT_HTTPHEADER => [
-            'Authorization: Bearer ' . GROQ_KEY,
-            'Content-Type: application/json',
-        ],
-        CURLOPT_TIMEOUT => 15,
-    ]);
+        ]
+    ];
 
-    $response  = curl_exec($ch);
-    $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlError || $httpCode !== 200) {
-        debugLog("Groq error comentario: $curlError | HTTP: $httpCode");
+    $jsonSolicitud = json_encode($datosSolicitud, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    if ($jsonSolicitud === false) {
+        debugLog("No se pudo preparar la solicitud a Groq: " . json_last_error_msg());
         return null;
     }
 
-    $data    = json_decode($response, true);
-    $comentario = trim($data['choices'][0]['message']['content'] ?? '');
+    $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
+    if ($ch === false) {
+        debugLog("No se pudo iniciar cURL para conectarse con Groq.");
+        return null;
+    }
 
-    return !empty($comentario) ? $comentario : null;
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $jsonSolicitud,
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . GROQ_KEY,
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ],
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT        => 30,
+        CURLOPT_SSL_VERIFYPEER => true
+    ]);
+
+    $response  = curl_exec($ch);
+    $httpCode  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+    curl_close($ch);
+
+    if ($response === false || $curlError !== '') {
+        debugLog("Error de conexión con Groq: " . ($curlError !== '' ? $curlError : 'No se recibió respuesta.'));
+        error_log("Groq cURL error: " . $curlError);
+        return null;
+    }
+
+    if ($httpCode < 200 || $httpCode >= 300) {
+        $respuestaError = json_decode($response, true);
+        $detalle = $respuestaError['error']['message'] ?? trim(substr($response, 0, 700));
+        if ($detalle === '') {
+            $detalle = 'Groq no devolvió detalles del error.';
+        }
+
+        debugLog("Groq respondió HTTP $httpCode para el modelo " . GROQ_MODEL . ": " . $detalle);
+        error_log("Groq HTTP $httpCode: " . $detalle);
+        return null;
+    }
+
+    $data = json_decode($response, true);
+    if (!is_array($data)) {
+        debugLog("Groq respondió, pero el JSON no es válido: " . json_last_error_msg());
+        return null;
+    }
+
+    $comentario = trim((string) ($data['choices'][0]['message']['content'] ?? ''));
+    if ($comentario === '') {
+        $motivo = $data['choices'][0]['finish_reason'] ?? 'sin información';
+        debugLog("Groq respondió sin texto en el comentario. Motivo de finalización: " . $motivo . ". Revisá el límite de tokens o la respuesta de la API.");
+        return null;
+    }
+
+    return $comentario;
 }
 
 // ============================================================
@@ -479,14 +560,26 @@ function mostrarOutfit($outfit) {
         }
     }
 
-    // Comentario cacheado en sesión para que no cambie al recargar
-    if (!isset($_SESSION['outfit_comentario']) || $_SESSION['outfit_comentario_clave'] !== $_SESSION['outfit_clave']) {
-    $comentario = generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto);
-    $_SESSION['outfit_comentario']       = $comentario;
-    $_SESSION['outfit_comentario_clave'] = $_SESSION['outfit_clave'];
-     }   else {
-    $comentario = $_SESSION['outfit_comentario'];
-              }
+    // Mantener el mismo comentario al recargar, pero no cachear fallos (null/vacío).
+    $claveOutfitActual = $_SESSION['outfit_clave'] ?? hash('sha256', serialize([$outfit, $estilo, $genero]));
+    $comentarioGuardado = $_SESSION['outfit_comentario'] ?? '';
+    $claveComentarioGuardado = $_SESSION['outfit_comentario_clave'] ?? '';
+
+    if (is_string($comentarioGuardado)
+        && trim($comentarioGuardado) !== ''
+        && $claveComentarioGuardado === $claveOutfitActual) {
+        $comentario = $comentarioGuardado;
+    } else {
+        $comentario = generarComentarioEstilista($outfit, $estilo, $genero, $historial_texto);
+
+        if (is_string($comentario) && trim($comentario) !== '') {
+            $_SESSION['outfit_comentario'] = $comentario;
+            $_SESSION['outfit_comentario_clave'] = $claveOutfitActual;
+        } else {
+            // Si Groq falla, se permite volver a intentar en la próxima carga.
+            unset($_SESSION['outfit_comentario'], $_SESSION['outfit_comentario_clave']);
+        }
+    }
     if ($comentario) {
         echo "<div style='
             margin-top: 24px;
